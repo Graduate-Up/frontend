@@ -27,6 +27,7 @@ import {
 import { useProfile, useStudent } from '@/state/useStudent'
 import { SubstitutionToggle } from '@/components/SubstitutionToggle'
 import { chosenSubstitutions } from '@/content/substitutions'
+import { useHashScroll } from '@/state/useHashScroll'
 import styles from './RequirementsPage.module.css'
 
 type Filter = 'all' | 'unsatisfied' | 'pending' | 'satisfied'
@@ -52,6 +53,8 @@ export function RequirementsPage() {
   const { courses, records } = useStudent()
   const rule = useRequirements(profile)
   const evaluation = useEvaluation(profile, courses, records)
+  // 사이드바 소메뉴(#req-credit 등)로 들어오면 판정이 그려진 뒤 그 그룹으로 스크롤
+  useHashScroll(!!evaluation.data)
 
   return (
     <>
@@ -139,7 +142,7 @@ function MyRequirements({
       )}
 
       {groups.map(({ group, items }) => (
-        <section key={group} className={ui.card}>
+        <section key={group} id={`req-${group}`} className={`${ui.card} ${styles.groupSection}`}>
           <div className={styles.groupHead}>
             <h2 className={ui.cardTitle}>{GROUP_LABEL[group]}</h2>
             <span className={ui.muted}>

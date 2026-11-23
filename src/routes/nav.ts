@@ -7,13 +7,28 @@ export type NavItem = {
   children?: { hash: string; label: string }[]
 }
 
+/** 전체 졸업요건 화면의 그룹 구역 id */
+export const REQUIREMENT_SECTIONS = {
+  credit: 'req-credit',
+  course: 'req-course',
+  nonacademic: 'req-nonacademic',
+} as const
+
 /** 이수 내역 화면의 구역 id */
 export const COURSE_SECTIONS = { list: 'course-list', manual: 'course-manual', import: 'course-import' } as const
 
 /** 사이드바 메뉴 (시안 순서) */
 export const NAV_ITEMS: NavItem[] = [
   { path: '/', label: '내 졸업 현황' },
-  { path: '/requirements', label: '전체 졸업요건' },
+  {
+    path: '/requirements',
+    label: '전체 졸업요건',
+    children: [
+      { hash: REQUIREMENT_SECTIONS.credit, label: '학점' },
+      { hash: REQUIREMENT_SECTIONS.course, label: '필수 과목' },
+      { hash: REQUIREMENT_SECTIONS.nonacademic, label: '졸업자격 · 비교과' },
+    ],
+  },
   {
     path: '/courses',
     label: '이수 내역',

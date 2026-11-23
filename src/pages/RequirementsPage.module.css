@@ -289,3 +289,8 @@
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+/* 사이드바 소메뉴로 이동하는 그룹 (위 흰 바 높이만큼 띄운다) */
+.groupSection {
+  scroll-margin-top: 70px;
+}
