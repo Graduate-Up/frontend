@@ -23,7 +23,7 @@ import {
   ui,
 } from '@/components/ui'
 import { CREDIT_AREA_LABEL, reasonText } from '@/constants/labels'
-import { courseNameMap, useEvaluation, useRequirements } from '@/state/queries'
+import { courseNameMap, useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   buildRequirementViews,
   entriesForArea,
@@ -113,6 +113,7 @@ function Detail({
   const split = area ? entriesForArea(area, entries, rule?.major_transcript_categories ?? []) : null
   const pendingCredits = split?.pending.reduce((n, e) => n + (e.recognized_credits || 0), 0) ?? 0
   const { courses, records, checkMethods } = useStudent()
+  const programLabel = useMyProgramName()
   const allRecords = withCourseRecords(courses, records)
   const chosen = chosenSubstitutions(checkMethods)
   const substitution = substitutionFor(profile.major, view.id)
@@ -162,7 +163,7 @@ function Detail({
             </p>
           )}
           <p className={styles.basis}>
-            기준: {majorTitle(profile)} · {profileSummary(profile)} → {view.name}
+            기준: {majorTitle(profile)} · {profileSummary(profile, programLabel)} → {view.name}
             {showNumber && ` ${formatCredits(r.required)}${view.unit} 이상`}
           </p>
           {r.reason && (

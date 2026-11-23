@@ -6,7 +6,7 @@ import { InquiryCard } from '@/components/side/SideCards'
 import { ErrorState, Loading, Pill, ScopeBadge, StatusBadge, formatCredits, ui } from '@/components/ui'
 import { OFFICIAL_ENGLISH_KEY } from '@/content/englishTests'
 import { buildAlerts } from '@/state/alerts'
-import { useEvaluation, useRequirements } from '@/state/queries'
+import { useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
   GROUP_ORDER,
@@ -67,6 +67,7 @@ function Dashboard({
 }) {
   const views = buildRequirementViews(rule, result, profile)
   const { courses, englishScores } = useStudent()
+  const programLabel = useMyProgramName()
   const alerts = buildAlerts({
     profile,
     views,
@@ -92,7 +93,7 @@ function Dashboard({
 
       <div className={styles.profileBar}>
         <strong>{majorTitle(profile)}</strong>
-        <span>{profileSummary(profile)}</span>
+        <span>{profileSummary(profile, programLabel)}</span>
         <span className={styles.progressChip} title="요건마다 같은 비중으로 계산한 진행률 (서버 기준)">
           졸업 진행률 <b>{formatCredits(result.progress)}%</b>
         </span>

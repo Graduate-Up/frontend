@@ -1,3 +1,4 @@
+import { programName } from '@/content/programs'
 import {
   getConvergencePrograms,
   getGraduationSchedule,
@@ -164,6 +165,13 @@ export function useConvergencePrograms() {
 }
 
 /** 내가 고른 융합전공과 그 과목코드 (과목 목록을 안 주는 백엔드면 빈 집합) */
+/** 내 융합전공 이름 — 목록을 못 받아오면 앱에 있는 목록으로 */
+export function useMyProgramName() {
+  const { convergenceProgram } = useStudent()
+  const { program } = useMyProgram()
+  return program?.name ?? programName(convergenceProgram)
+}
+
 export function useMyProgram() {
   const { convergenceProgram } = useStudent()
   const list = useConvergencePrograms()
