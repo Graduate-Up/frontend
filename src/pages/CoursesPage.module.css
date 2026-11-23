@@ -1,0 +1,135 @@
+.tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: #e2e7f0;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.tab b {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgb(15 27 45 / 0.08);
+}
+
+.tab[aria-selected='true'] b {
+  color: var(--color-navy);
+}
+
+.recognition {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 220px;
+}
+
+
+.gradeSelect {
+  width: 72px;
+}
+
+.offerFix {
+  display: block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-warning);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kindSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.kindItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kindItem b {
+  color: var(--color-text);
+}
+
+.kindItem i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.kindItem[data-kind='major'] i {
+  background: var(--color-navy);
+}
+
+.kindItem[data-kind='liberal'] i {
+  background: var(--color-teal);
+}
+
+.kindItem[data-kind='general'] i {
+  background: #b7c0ce;
+}
+
+.kindItem[data-kind='startup'] i {
+  background: #c2540a;
+}
+
+.kindItem[data-kind='multi'] i {
+  background: #b4236b;
+}
+
+.kindItem[data-kind='other'] i {
+  background: var(--color-warning);
+}
+
+/* 과목 목록 아래 '추가할래요' · '새로 입력할래요' — 페이지 제목과 같은 크기 */
+.sectionHeading {
+  margin-top: 24px;
+}
+
+/* 과목 구분 (첨성인기초(글쓰기) · 필수 · SDG 등) */
+.areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.areas span {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}

@@ -1,0 +1,43 @@
+.count {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--color-check-soft);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-check);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-surface-muted);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row[data-pending='true'] select {
+  border-color: var(--color-check);
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.row select {
+  min-width: 220px;
+}

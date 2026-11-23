@@ -1,0 +1,58 @@
+.reqs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 12px 0 16px;
+}
+
+.req {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.practical {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.practical h3 {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.practical select {
+  max-width: 560px;
+  height: 42px;
+}
+
+.result {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-danger);
+}
+
+.result[data-ok='true'] {
+  color: var(--color-teal-dark);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-teal);
+}

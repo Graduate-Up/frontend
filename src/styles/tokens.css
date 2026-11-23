@@ -1,0 +1,43 @@
+/* 졸UP 디자인 토큰 — 컬러 시안 기준 */
+:root {
+  /* Brand */
+  --color-navy: #1d3a8a;
+  --color-navy-soft: #e6ecf8;
+  --color-teal: #0e9f8e;
+  --color-teal-dark: #0b7a6e; /* 틸을 텍스트로 쓸 땐 Teal Dark */
+  --color-teal-soft: #e3f5f1;
+  --color-ink: #0f1b2d;
+  --color-periwinkle: #a9bdf5; /* 어두운 배경 위 UP */
+
+  /* Neutral */
+  --color-bg: #edf1f6;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f4f9;
+  --color-border: #dfe4ec;
+  --color-text: #0f1b2d;
+  --color-text-sub: #4a5568;
+  --color-text-muted: #8a94a6;
+
+  /* Sidebar */
+  --sidebar-bg: #0f1b2d;
+  --sidebar-active: #1e2f4d;
+  --sidebar-text: #c9d1de;
+
+  /* Status */
+  --color-danger: #c0262d;
+  --color-danger-soft: #fde8e8;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #fff3d6;
+  --color-check: #5b3fd1;
+  --color-check-soft: #eeeafd;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04);
+
+  --sidebar-width: 190px;
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}

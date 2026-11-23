@@ -1,0 +1,326 @@
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 20px 22px;
+  border: 1px solid #9fdccf;
+  border-radius: var(--radius-md);
+  background: var(--color-teal-soft);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.head h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-teal-dark);
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: var(--color-teal-dark);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.notice {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-warning);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.steps li::marker {
+  font-weight: 800;
+  color: var(--color-teal-dark);
+}
+
+.steps p {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.bookmarkRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 32px;
+  margin: 6px 0 8px;
+}
+
+.dragSource {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.liftHint {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-teal-dark);
+  animation: bob 1.4s ease-in-out infinite;
+}
+
+.grip {
+  margin-right: 6px;
+  font-size: 16px;
+  color: var(--color-teal);
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* 브라우저 미니 그림 */
+.demo {
+  width: 260px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgb(15 27 45 / 0.08);
+}
+
+.demoTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--color-surface-muted);
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cfd6e2;
+}
+
+.address {
+  flex: 1;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--color-surface);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.demoBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.demoLabel {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.slot {
+  padding: 2px 8px;
+  border: 1.5px dashed var(--color-teal);
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-teal-dark);
+  animation: slotPulse 3s ease-in-out infinite;
+}
+
+.demoPage {
+  position: relative;
+  height: 74px;
+  background: repeating-linear-gradient(180deg, transparent 0 14px, var(--color-surface-muted) 14px 16px);
+}
+
+.demoArrow {
+  position: absolute;
+  top: 4px;
+  left: 112px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-teal);
+  animation: bob 1.4s ease-in-out infinite;
+}
+
+.ghost {
+  position: absolute;
+  left: 60px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border: 1.5px dashed var(--color-teal-dark);
+  border-radius: 5px;
+  background: var(--color-surface);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--color-teal-dark);
+  box-shadow: 0 3px 8px rgb(15 27 45 / 0.15);
+  animation: lift 3s ease-in-out infinite;
+}
+
+/* 버튼이 아래에서 즐겨찾기 바 자리로 올라간다 */
+@keyframes lift {
+  0%,
+  15% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  60%,
+  80% {
+    transform: translate(-6px, -72px);
+    opacity: 1;
+  }
+  95%,
+  100% {
+    transform: translate(-6px, -72px);
+    opacity: 0;
+  }
+}
+
+@keyframes slotPulse {
+  0%,
+  55% {
+    background: transparent;
+  }
+  65%,
+  85% {
+    background: var(--color-teal-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* 끄는 동안 화면 맨 위까지 안내 */
+.dragOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.dropBanner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--color-teal-dark);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dropBanner span {
+  font-size: 18px;
+  font-weight: 800;
+  animation: bob 0.9s ease-in-out infinite;
+}
+
+.dragLine {
+  position: absolute;
+  top: 44px;
+  width: 0;
+  border-left: 3px dashed var(--color-teal);
+  transform: translateX(-1.5px);
+}
+
+.dragLine::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -9px;
+  border-right: 7px solid transparent;
+  border-bottom: 10px solid var(--color-teal);
+  border-left: 7px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liftHint,
+  .demoArrow,
+  .ghost,
+  .slot,
+  .dropBanner span {
+    animation: none;
+  }
+}
+
+.bookmark {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 2px dashed var(--color-teal-dark);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-teal-dark);
+  cursor: grab;
+  user-select: none;
+}
+
+.bookmark[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.bookmark:active {
+  cursor: grabbing;
+}
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tip {
+  margin-top: 8px !important;
+  font-weight: 700;
+  color: var(--color-teal-dark) !important;
+}
+
+.error {
+  color: var(--color-danger) !important;
+}

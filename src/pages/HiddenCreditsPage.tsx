@@ -1,0 +1,129 @@
+import { Link } from 'react-router-dom'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { CategoryBadge, ErrorState, Loading, PageIntro, Sources, formatCredits, ui } from '@/components/ui'
+import { hiddenCreditChecks, type HiddenCheck } from '@/state/hiddenCredits'
+import { useEvaluation, useRequirements } from '@/state/queries'
+import { useProfile, useStudent } from '@/state/useStudent'
+import styles from './HiddenCreditsPage.module.css'
+
+export function HiddenCreditsPage() {
+  const profile = useProfile()
+  const { courses, records } = useStudent()
+  const rule = useRequirements(profile)
+  const evaluation = useEvaluation(profile, courses, records)
+  const checks = rule.data && evaluation.data ? hiddenCreditChecks(rule.data, evaluation.data, courses) : null
+  const found = checks?.filter((c) => c.found) ?? []
+  const info = checks?.filter((c) => c.info) ?? []
+  const clear = checks?.filter((c) => !c.found && !c.info) ?? []
+  const error = rule.error ?? evaluation.error
+
+  return (
+    <>
+      <PageHeader crumbs={[{ label: '숨은 학점' }]} />
+      <div className={ui.page}>
+        {error ? <ErrorState error={error} /> : !checks && <Loading label="판정 중…" />}
+        {checks && (
+          <>
+            <PageIntro
+              heading={found.length ? `채울 수 있는데 놓친 학점, ${found.length}건 찾았어요` : '놓친 학점이 없어요'}
+              lead={`다시 듣기 전에 신청만으로 해결되는지 먼저 확인하세요. ${checks.length}가지 항목을 검사했어요.`}
+            />
+            {courses.length === 0 && (
+              <p className={styles.empty}>
+                이수 과목을 넣으면 검사할 수 있어요. <Link to="/courses">이수 내역 입력하기 →</Link>
+              </p>
+            )}
+            {found.map((c) => (
+              <FoundCard key={c.id} check={c} />
+            ))}
+            {info.length > 0 && (
+              <>
+                <h2 className={styles.clearTitle}>참고</h2>
+                <div className={styles.clearGrid}>
+                  {info.map((c) => (
+                    <div key={c.id} className={styles.clearCard} data-info>
+                      <b>
+                        <span aria-hidden>!</span> {c.title}
+                      </b>
+                      <p>{c.body}</p>
+                      {c.courses && (
+                        <p className={ui.muted}>
+                          {c.courses.map((x) => `${x.name} ${formatCredits(x.credits)}학점`).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {clear.length > 0 && (
+              <>
+                <h2 className={styles.clearTitle}>이상 없는 항목</h2>
+                <div className={styles.clearGrid}>
+                  {clear.map((c) => (
+                    <div key={c.id} className={styles.clearCard}>
+                      <b>
+                        <span aria-hidden>✓</span> {c.title}
+                      </b>
+                      <p>{c.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  )
+}
+
+function FoundCard({ check }: { check: HiddenCheck }) {
+  return (
+    <section className={styles.found}>
+      <div className={styles.head}>
+        <div className={styles.titleRow}>
+          <span className={styles.tag}>발견 · {check.tag}</span>
+          <h2>{check.title}</h2>
+        </div>
+        {check.result && <span className={styles.result}>{check.result}</span>}
+      </div>
+      <p className={styles.body}>{check.body}</p>
+
+      {check.courses && check.courses.length > 0 && (
+        <ul className={styles.courses}>
+          {check.courses.map((c) => (
+            <li key={`${c.code}@${c.semester}`}>
+              <b>{c.name}</b>
+              <span className={ui.muted}>
+                {c.code} · {formatCredits(c.credits)}학점 · {c.semester}
+              </span>
+              <CategoryBadge category={c.category} code={c.code} />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {check.steps && (
+        <ol className={styles.steps}>
+          {check.steps.map((s, i) => (
+            <li key={s.title}>
+              <span>STEP {i + 1}</span>
+              <b>{s.title}</b>
+              <small>{s.sub}</small>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <div className={styles.foot}>
+        <Sources sources={check.sources} />
+        {check.action && (
+          <Link to={check.action.to} className={ui.buttonGhost}>
+            {check.action.label}
+          </Link>
+        )}
+      </div>
+    </section>
+  )
+}

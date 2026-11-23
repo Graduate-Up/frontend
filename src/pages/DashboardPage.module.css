@@ -1,0 +1,269 @@
+.title {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.profileBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  background: #e2e7f0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.profileBar strong {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.profileLink {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* 학점 요약 */
+.metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.metricLabel {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.metric {
+  margin-top: 2px;
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.metric small {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--color-text-sub);
+}
+
+.metricTeal {
+  color: var(--color-teal-dark);
+}
+
+.compTitle {
+  margin-top: 22px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.stacked {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  margin-top: 10px;
+}
+
+.stacked > div {
+  flex-basis: 0;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.segFill {
+  height: 100%;
+}
+
+.segMajor {
+  background: var(--color-navy-soft);
+}
+
+.segMajor .segFill,
+.legend .segMajor i {
+  background: var(--color-navy);
+}
+
+.segLiberal {
+  background: var(--color-teal-soft);
+}
+
+.segLiberal .segFill,
+.legend .segLiberal i {
+  background: var(--color-teal);
+}
+
+.segOther {
+  background: var(--color-surface-muted);
+}
+
+.segOther .segFill,
+.legend .segOther i {
+  background: #b7c0ce;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+}
+
+.legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* 요건 목록 */
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.group {
+  margin-top: 16px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: var(--color-surface-muted);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px 96px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-surface-muted);
+  border-radius: 6px;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: #f7f9fc;
+}
+
+.rowName {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rowName strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rowName span {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowValue {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.rowStatus {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.footnote {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.pendingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.pendingList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pendingList a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendingList a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rowValue {
+    grid-row: 2;
+  }
+
+  .metric {
+    font-size: 38px;
+  }
+}
+
+.groupLink {
+  margin-left: auto;
+  color: var(--color-navy);
+}
+
+.progressChip {
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.progressChip b {
+  color: var(--color-navy);
+}

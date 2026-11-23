@@ -1,0 +1,258 @@
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 상태 요약 탭 */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  color: var(--color-text-sub);
+}
+
+.tab span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tab strong {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.tab[data-kind='unsatisfied'] strong {
+  color: var(--color-danger);
+}
+
+.tab[data-kind='pending'] strong {
+  color: var(--color-check);
+}
+
+.tab[data-kind='satisfied'] strong {
+  color: var(--color-teal-dark);
+}
+
+.tab:hover {
+  border-color: #b7c0ce;
+}
+
+.tab[aria-selected='true'] {
+  border: 2px solid var(--color-navy);
+  padding: 15px 19px;
+  background: #f7f9ff;
+}
+
+.basis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  background: #e2e7f0;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.basis strong {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.basisLink {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+/* 그룹 */
+.groupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 0 20px 16px;
+  border-bottom: 1px solid var(--color-surface-muted);
+  border-left: 3px solid transparent;
+}
+
+.item:last-child {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.item[data-status='unsatisfied'] {
+  border-left-color: var(--color-danger);
+}
+
+.item[data-status='approval_required'] {
+  border-left-color: var(--color-warning);
+}
+
+.item[data-status='verification_required'] {
+  border-left-color: var(--color-check);
+}
+
+.item[data-status='satisfied'] {
+  border-left-color: var(--color-teal);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.itemTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemTitle h3 {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.more {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 14px;
+}
+
+.value {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.value b {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.bar > div {
+  height: 8px;
+}
+
+.gap {
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  color: var(--color-danger);
+}
+
+.gap[data-done='true'] {
+  color: var(--color-teal-dark);
+}
+
+.reason {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.courses {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.courses li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  font-size: 13px;
+}
+
+.courseName {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.details summary {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+.details ul,
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+@media (max-width: 720px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .progress {
+    grid-template-columns: 1fr auto;
+  }
+
+  .bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+.item[data-status='not_started'] {
+  border-left-color: #b7c0ce;
+}

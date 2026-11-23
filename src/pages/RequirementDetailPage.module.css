@@ -1,0 +1,213 @@
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.big {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  margin-top: 18px;
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.big small {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-sub);
+}
+
+.big em {
+  margin-left: 14px;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--color-danger);
+}
+
+.state {
+  margin-top: 18px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-sub);
+}
+
+.basis {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.pendingList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.pendingItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.pendingItem strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.pendingMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.pendingMeta b {
+  color: var(--color-teal-dark);
+}
+
+.tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--color-surface-muted);
+  font-size: 11px;
+}
+
+.ok {
+  font-weight: 800;
+  color: var(--color-teal-dark);
+}
+
+.more {
+  display: block;
+  margin: 18px auto 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+}
+
+/* 채우는 방법 */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.option div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.option strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.option div span {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.optLabel {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text-sub);
+}
+
+.optionMain {
+  border: 2px solid var(--color-teal);
+  background: var(--color-teal-soft);
+}
+
+a.option.optionMain:hover {
+  background: #d3efe8;
+}
+
+.optionMain .optLabel {
+  color: var(--color-teal-dark);
+}
+
+a.option:hover {
+  background: #f7f9fc;
+}
+
+@media (max-width: 640px) {
+  .big {
+    font-size: 44px;
+  }
+}
+
+/* 비교과 기록 */
+.recordRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.recordRow > p {
+  flex: 1;
+}
+
+.recordField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.recordField input {
+  width: 120px;
+}
+
+.recordField b {
+  font-weight: 700;
+  color: var(--color-text);
+}

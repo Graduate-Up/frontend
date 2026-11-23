@@ -1,0 +1,114 @@
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-surface-muted);
+}
+
+.row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.info {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.name a:hover {
+  text-decoration: underline;
+}
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inputWrap input {
+  width: 110px;
+  text-align: right;
+}
+
+.unit {
+  min-width: 28px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.inputWrap button {
+  min-width: 72px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-teal);
+}
+
+.englishHead {
+  margin: 14px 0 12px;
+}
+
+.hint {
+  flex-basis: 100%;
+  order: 3;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-teal-dark);
+}
+
+.subHint {
+  flex-basis: 100%;
+  order: 3;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.autoValue {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.guideLink {
+  flex-basis: 100%;
+  order: 4;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-navy);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
