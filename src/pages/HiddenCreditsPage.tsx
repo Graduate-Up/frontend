@@ -175,12 +175,14 @@ function RetakeCard({ summary }: { summary: RetakeSummary }) {
             </span>
             {c.failed && <span className={styles.reason}>+{formatCredits(c.credits)}학점</span>}
             {c.required && <span className={styles.reason}>필수과목</span>}
+            {c.lastTerm && <span className={styles.blocked}>직전 학기 과목 · 다음 학기엔 재수강 불가</span>}
             <span className={styles.gain}>평점 +{c.gpaGain.toFixed(2)}</span>
           </li>
         ))}
       </ul>
       <p className={styles.retakeNote}>
-        폐지된 과목은 동일과목으로 재이수할 수 있으니 수강 신청 전에 학부 사무실에 확인하세요.
+        직전 학기(계절학기 포함)에 들은 과목은 바로 다음 학기에 재수강할 수 없어요. 폐지된 과목은 동일과목으로 재이수할
+        수 있으니 수강 신청 전에 학부 사무실에 확인하세요.
       </p>
     </section>
   )

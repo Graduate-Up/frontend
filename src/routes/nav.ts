@@ -40,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { path: '/hidden-credits', label: '숨은 학점', count: 'hidden-credits' },
   { path: '/schedule', label: '졸업 일정' },
+  { path: '/chat', label: '졸업요건 질문' },
   { path: '/recommend', label: '과목 추천' },
   { path: '/notices', label: '근거 공지 모음' },
 ]

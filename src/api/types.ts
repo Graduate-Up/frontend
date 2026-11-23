@@ -521,3 +521,7 @@ export type RecommendationRequest = {
   /** 들을 학기 YYYY-1|2 */
   target_semester?: string | null
 }
+
+/** POST /me/graduation-chat — 저장된 학적 · 이수 기록으로 판정한 결과를 근거로 AI가 답한다 */
+export type GraduationQuestion = { question: string }
+export type GraduationAnswer = { answer: string; sources: Source[]; rule_id: string }

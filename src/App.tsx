@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { CoursesPage } from '@/pages/CoursesPage'
 import { HiddenCreditsPage } from '@/pages/HiddenCreditsPage'
 import { RecommendPage } from '@/pages/RecommendPage'
+import { ChatPage } from '@/pages/ChatPage'
 import { SchedulePage } from '@/pages/SchedulePage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="hidden-credits" element={<HiddenCreditsPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="recommend" element={<RecommendPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="notices" element={<NoticesPage />} />
         </Route>
 

@@ -114,9 +114,11 @@ export function CoursesPage() {
   })).filter((k) => k.credits > 0)
   const gpaReady = courses.filter((c) => c.grade).length
   // 내 융합전공 과목인데 성적표에 일반선택으로 잡힌 과목 — 교과구분 변경 신청을 해야 융합전공 학점이 된다
-  // 내 융합전공 과목이면 교과구분(일반선택 · 전공 등)과 상관없이 융합전공으로 바꿀 수 있다
+  // 내 융합전공 과목이면 교과구분(일반선택 · 전공선택 등)과 상관없이 융합전공으로 바꿀 수 있다
+  // 전공필수는 융합전공으로 넘길 수 없다
+  const isMajorRequired = (c: Course) => c.transcript_category.replace(/\s/g, '') === '전공필수'
   const canChangeToProgram = (c: Course) =>
-    myProgram.codes.has(c.course_code) && c.transcript_category !== PROGRAM_CATEGORY
+    myProgram.codes.has(c.course_code) && c.transcript_category !== PROGRAM_CATEGORY && !isMajorRequired(c)
   const [originals, setOriginals] = useState(readOriginals)
 
   function changeToProgram(c: Course) {
@@ -216,6 +218,11 @@ export function CoursesPage() {
                               .filter(Boolean)
                               .join(' · ')}
                           </div>
+                          {myProgram.codes.has(c.course_code) && isMajorRequired(c) && (
+                            <div className={styles.programHint}>
+                              <p>전공필수는 융합전공으로 변경할 수 없어요.</p>
+                            </div>
+                          )}
                           {canChangeToProgram(c) && (
                             <div className={styles.programHint}>
                               <p>
