@@ -10,6 +10,7 @@ import type {
   EvaluationResponse,
   GraduationRule,
   GraduationSchedule,
+  ProgramSummary,
   RecommendationRequest,
   Recommendations,
   MajorCode,
@@ -40,6 +41,11 @@ export function getGraduationSchedule(
   if (params.major) query.major = params.major
   if (params.admission_year) query.admission_year = params.admission_year
   return request<GraduationSchedule>(`${V1}/graduation/schedule`, { query, ...opts })
+}
+
+/** 융합전공 목록 (학적에 저장할 수 있는 id) */
+export function getConvergencePrograms(opts?: Opts) {
+  return request<ProgramSummary[]>(`${V1}/convergence-programs`, opts)
 }
 
 /** 입학년도에 선택 가능한 세부전공 */

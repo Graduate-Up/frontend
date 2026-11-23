@@ -30,12 +30,16 @@ export function StatusBadge({
   status,
   notStarted = false,
   notApplicable = false,
+  later = false,
 }: {
   status: JudgementStatus
   notStarted?: boolean
   notApplicable?: boolean
+  /** 졸업 학기에 하면 되는 항목 — 회색 '진행 전' */
+  later?: boolean
 }) {
   if (notApplicable) return <Pill tone="neutral">미해당</Pill>
+  if (later && status !== 'satisfied') return <Pill tone="neutral">진행 전</Pill>
   if (status === 'unsatisfied' && notStarted) return <Pill tone="neutral">진행 전</Pill>
   return <Pill tone={JUDGEMENT_TONE[status]}>{JUDGEMENT_LABEL[status]}</Pill>
 }

@@ -6,6 +6,7 @@ import { useCatalog, useEvaluation, useRequirements } from '@/state/queries'
 import { CAREERS, recommend, type Career, type Recommendation } from '@/state/recommend'
 import { useAsync } from '@/state/useAsync'
 import { useProfile, useStudent } from '@/state/useStudent'
+import { programName } from '@/content/programs'
 import styles from './RecommendPage.module.css'
 
 const CAREER_KEY = 'graduate-up.career'
@@ -52,7 +53,9 @@ function toCourseRecommendation(r: Recommendation): CourseRecommendation {
 
 export function RecommendPage() {
   const profile = useProfile()
-  const { kind, courses, records, syncStatus } = useStudent()
+  const { kind, courses, records, syncStatus, convergenceProgram } = useStudent()
+  // 학적 변경에서 고른 융합전공
+  const myProgram = convergenceProgram
   const [career, setCareer] = useState<Career>(loadCareer)
   const [showAll, setShowAll] = useState(false)
   const isAccount = kind === 'account'
@@ -84,8 +87,15 @@ export function RecommendPage() {
             .join(' · ')
         : null,
       recommended: d.recommended,
-      alternatives: d.alternatives,
-      programs: d.programs,
+      // 내 융합전공 과목을 다른 후보 맨 앞으로
+      alternatives: myProgram
+        ? [...d.alternatives].sort(
+            (a, b) => Number(b.program_ids.includes(myProgram)) - Number(a.program_ids.includes(myProgram)),
+          )
+        : d.alternatives,
+      programs: myProgram
+        ? [...d.programs].sort((a, b) => Number(b.id === myProgram) - Number(a.id === myProgram))
+        : d.programs,
       programNames: Object.fromEntries(d.programs.map((p) => [p.id, p.name])),
       ai: d.ranking === 'openai',
       basis: d.curriculum_source.title,
@@ -179,6 +189,7 @@ export function RecommendPage() {
                       rec={r}
                       career={career}
                       programNames={view!.programNames}
+                      myProgram={myProgram}
                     />
                   ))}
                 </div>
@@ -210,6 +221,9 @@ export function RecommendPage() {
                             {career !== 'any' && r.career_tags.includes(career) && (
                               <span className={styles.match}>진로 관련</span>
                             )}
+                            {myProgram && r.program_ids.includes(myProgram) && (
+                              <span className={styles.match}>내 융합전공</span>
+                            )}
                           </td>
                           <td>{formatCredits(r.credits)}</td>
                           <td>{r.recommended_year ? `${r.recommended_year}-${r.recommended_semester ?? ''}` : '-'}</td>
@@ -236,7 +250,7 @@ export function RecommendPage() {
               </section>
             )}
 
-            {view.programs.length > 0 && <ProgramsCard programs={view.programs} />}
+            {(view.programs.length > 0 || myProgram) && <ProgramsCard programs={view.programs} myProgram={myProgram} />}
 
             <p className={ui.muted}>
               추천은 내 교육과정 과목 중에서만 해요. 개설 여부 · 시간표는 수강신청 시스템에서 확인하세요. ({view.basis})
@@ -264,11 +278,13 @@ function RecommendCard({
   rec,
   career,
   programNames,
+  myProgram,
 }: {
   rank: number
   rec: CourseRecommendation
   career: Career
   programNames: Record<string, string>
+  myProgram: string | null
 }) {
   const programs = rec.program_ids.map((id) => programNames[id]).filter(Boolean)
   return (
@@ -290,6 +306,7 @@ function RecommendCard({
             {gainText(g)}
           </span>
         ))}
+        {myProgram && rec.program_ids.includes(myProgram) && <span className={styles.matchTag}>내 융합전공</span>}
         {rec.career_tags.map((t) => (
           <span key={t} className={t === career ? styles.matchTag : styles.tagMuted}>
             {CAREER_LABEL[t]}
@@ -303,7 +320,8 @@ function RecommendCard({
 }
 
 /** 융합전공 · 복수전공 — 이미 들은 과목이 겹치거나 진로와 이어지는 전공 */
-function ProgramsCard({ programs }: { programs: ProgramRecommendation[] }) {
+function ProgramsCard({ programs, myProgram }: { programs: ProgramRecommendation[]; myProgram: string | null }) {
+  const myMissing = myProgram && !programs.some((p) => p.id === myProgram)
   return (
     <section className={ui.card}>
       <div className={ui.cardHead}>
@@ -311,10 +329,22 @@ function ProgramsCard({ programs }: { programs: ProgramRecommendation[] }) {
         <span className={ui.muted}>이미 들은 과목이 겹치는 순</span>
       </div>
       <ul className={styles.programs}>
-        {programs.map((p) => (
-          <li key={p.id}>
+        {myMissing && (
+          <li data-mine>
             <div className={styles.programHead}>
-              <b>{p.name}</b>
+              <b>{programName(myProgram)}</b>
+              <span className={styles.kind}>내 융합전공</span>
+            </div>
+            <p>아직 들은 과목 중 겹치는 과목이 없어요. 추천 과목에서 이 전공 과목을 확인해보세요.</p>
+          </li>
+        )}
+        {programs.map((p) => (
+          <li key={p.id} data-mine={p.id === myProgram || undefined}>
+            <div className={styles.programHead}>
+              <b>
+                {p.name}
+                {p.id === myProgram && <span className={styles.mine}>내 융합전공</span>}
+              </b>
               <span className={styles.kind}>{p.kind === 'convergence' ? '융합전공' : '복수전공'}</span>
             </div>
             <p>

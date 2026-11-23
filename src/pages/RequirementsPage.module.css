@@ -294,3 +294,8 @@
 .groupSection {
   scroll-margin-top: 70px;
 }
+
+/* 아직 제출하지 않은 확인 항목은 빨갛게 */
+.value b[data-missing] {
+  color: var(--color-danger);
+}

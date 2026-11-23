@@ -24,6 +24,7 @@ const coursesKey = (owner: string) => `graduate-up.courses.${owner}`
 const recordsKey = (owner: string) => `graduate-up.nonacademic.${owner}`
 const englishKey = (owner: string) => `graduate-up.english.${owner}`
 const methodsKey = (owner: string) => `graduate-up.methods.${owner}`
+const programKey = (owner: string) => `graduate-up.program.${owner}`
 type MethodMap = Record<string, string>
 type EnglishMap = Record<string, EnglishScore>
 
@@ -61,6 +62,9 @@ export function StudentProvider({ children }: { children: ReactNode }) {
 
   /** 다음 저장 때 함께 보낼 교양 영역 요약 (성적표에서 새로 읽어 왔을 때만) */
   const pendingSummary = useRef<LiberalSummary | null>(null)
+  const [convergenceProgram, setConvergenceProgram] = useState<string | null>(() =>
+    initialGuest ? storage.get<string | null>(programKey('guest'), null) : null,
+  )
   const [liberalSummary, setLiberalSummaryState] = useState<LiberalSummary | null>(null)
 
   // 저장 타이머가 최신 값을 보도록
@@ -74,7 +78,13 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     const user = localPart(me.account.username)
     setAccount(me.account)
     if (me.profile) {
-      const { student_number, ...rest } = me.profile
+      // 융합전공은 판정 요청에 넣으면 안 돼서 따로 둔다 (백엔드가 지원 안 하면 이 브라우저 값)
+      const { student_number, convergence_program, ...rest } = me.profile
+      setConvergenceProgram(
+        'convergence_program' in me.profile
+          ? (convergence_program ?? null)
+          : storage.get<string | null>(programKey(user), null),
+      )
       setProfile(rest)
       setStudentNumber(student_number)
     } else {
@@ -212,26 +222,37 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     setRecordsState(storage.get<NonacademicRecord[]>(recordsKey('guest'), []))
     setEnglishScores(storage.get<EnglishMap>(englishKey('guest'), {}))
     setCheckMethods(storage.get<MethodMap>(methodsKey('guest'), {}))
+    setConvergenceProgram(storage.get<string | null>(programKey('guest'), null))
     setSyncStatus('idle')
     setKind('guest')
   }, [])
 
   const saveProfile = useCallback<StudentContextValue['saveProfile']>(
-    async (next, number) => {
+    async (next, number, program) => {
       const p = normalizeProfile(next)
       if (kind === 'account') {
         if (!number) throw new Error('학번을 입력해주세요.')
-        const me = await apiSaveProfile({ ...p, student_number: number })
-        const { student_number, ...rest } = me.profile ?? { ...p, student_number: number }
+        const me = await apiSaveProfile({
+          ...p,
+          student_number: number,
+          ...(program?.server ? { convergence_program: program.id } : {}),
+        })
+        const { student_number, convergence_program, ...rest } = me.profile ?? { ...p, student_number: number }
         setProfile(rest)
         setStudentNumber(student_number)
+        if (program?.server) setConvergenceProgram(convergence_program ?? null)
       } else {
         storage.set(GUEST_KEY, p)
         setProfile(p)
         setKind('guest')
       }
+      // 백엔드가 융합전공을 아직 못 받으면(또는 둘러보기) 이 브라우저에 둔다
+      if (program && !(kind === 'account' && program.server)) {
+        storage.set(programKey(kind === 'account' && account ? account.username.split('@')[0] : 'guest'), program.id)
+        setConvergenceProgram(program.id)
+      }
     },
-    [kind],
+    [kind, account],
   )
 
   const signOut = useCallback(async () => {
@@ -243,6 +264,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     setCoursesState([])
     setRecordsState([])
     setLiberalSummaryState(null)
+    setConvergenceProgram(null)
     setEnglishScores({})
     setCheckMethods({})
     setSyncStatus('idle')
@@ -266,6 +288,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
       setRecord,
       setLiberalSummary,
       liberalSummary,
+      convergenceProgram,
       englishScores,
       setEnglishScore,
       syncStatus,
@@ -288,6 +311,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
       setRecord,
       setLiberalSummary,
       liberalSummary,
+      convergenceProgram,
       englishScores,
       setEnglishScore,
       syncStatus,
