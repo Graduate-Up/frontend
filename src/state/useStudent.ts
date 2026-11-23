@@ -1,5 +1,12 @@
 import { createContext, useContext } from 'react'
-import type { AccountResponse, Course, LiberalSummary, NonacademicRecord, StudentProfile } from '@/api'
+import type {
+  AccountResponse,
+  Course,
+  EnglishTestResult,
+  LiberalSummary,
+  NonacademicRecord,
+  StudentProfile,
+} from '@/api'
 import type { EnglishScore } from '@/content/englishTests'
 
 /**
@@ -24,7 +31,10 @@ export type StudentContextValue = {
   setCourses: (updater: Course[] | ((prev: Course[]) => Course[])) => void
   /** 비교과 기록 (영어 점수, 상담 횟수 등) — 저장 위치는 과목과 같다 */
   records: NonacademicRecord[]
-  setRecord: (requirementId: string, amount: number | null) => void
+  /** englishTest: 영어 요건이면 시험 원본도 함께 서버에 저장 */
+  setRecord: (requirementId: string, amount: number | null, englishTest?: EnglishTestResult | null) => void
+  /** 성적표에서 읽은 교양 영역 요약 (서버에 저장된 값) */
+  liberalSummary: LiberalSummary | null
   /** 성적표에서 읽은 교양 영역 요약을 서버에 저장 */
   setLiberalSummary: (summary: LiberalSummary) => void
   /** 영어 요건별로 입력한 시험 · 점수 원본 (판정에는 TOEIC 환산값이 records로 간다) */

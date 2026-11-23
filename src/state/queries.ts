@@ -38,7 +38,7 @@ export function useRequirements(profile: StudentProfile) {
 /** 이수 과목으로 판정 — 과목이 없어도 요건 목록을 받기 위해 요청한다 */
 export function useEvaluation(profile: StudentProfile, courses: Course[], records: NonacademicRecord[] = []) {
   // 학생이 고른 대체 인정 (예: 스타트업 창업활동 → 창업 교과목 15학점)
-  const { checkMethods } = useStudent()
+  const { checkMethods, liberalSummary } = useStudent()
   const chosen = chosenSubstitutions(checkMethods)
   const chosenKey = [...chosen].sort().join(',')
   return useAsync(
@@ -49,6 +49,8 @@ export function useEvaluation(profile: StudentProfile, courses: Course[], record
           student_profile: profile,
           completed_courses: courses,
           nonacademic_records: withSubstitutions(profile.major, withCourseRecords(courses, records), chosen),
+          // 성적표 교양 영역 요약이 있으면 교양 영역 요건을 이 숫자로 판정
+          ...(liberalSummary ? { liberal_summary: liberalSummary } : {}),
         },
         { signal },
       ).then((e) =>
@@ -97,12 +99,19 @@ export type Catalog = { basis: string; inferred: boolean; items: CatalogCourse[]
 
 /** 내 학번 · 전공 교육과정 과목 전체 (100개씩 끝까지 받는다) */
 export function useCatalog(profile: StudentProfile) {
-  return useAsync<Catalog>(`catalog:${profile.admission_year}:${profile.major}`, async (signal) => {
+  const abeek = profile.major === 'plsop' && profile.abeek === true
+  return useAsync<Catalog>(`catalog:${profile.admission_year}:${profile.major}:${abeek}`, async (signal) => {
     const items: CatalogCourse[] = []
     let first: Awaited<ReturnType<typeof searchCourses>> | null = null
     for (let offset = 0; offset < 1000; offset += 100) {
       const page = await searchCourses(
-        { admission_year: profile.admission_year, major: profile.major, limit: 100, offset },
+        {
+          admission_year: profile.admission_year,
+          major: profile.major,
+          limit: 100,
+          offset,
+          ...(abeek ? { abeek } : {}),
+        },
         { signal },
       )
       first ??= page
@@ -117,6 +126,8 @@ export function useCatalog(profile: StudentProfile) {
 export function offeredByDepartment(item: CatalogCourse | undefined, code?: string): boolean | undefined {
   if (DEPARTMENT_OFFERED_OVERRIDES.has(item?.course_code ?? code ?? '')) return true
   if (!item) return undefined
+  // 백엔드가 개설 학부를 알려주면 그 값을 쓴다
+  if (item.offered_by_computer_science != null) return item.offered_by_computer_science
   if (item.curriculum_category.includes('타 전공')) return false
   if (isMajorCurriculum(item.curriculum_category)) return true
   return undefined
@@ -133,6 +144,14 @@ export function isLiberalCurriculum(category: string) {
 }
 
 /** 졸업 일정 · 조기졸업 기준 (학생과 상관없이 같다) */
-export function useGraduationSchedule() {
-  return useAsync<GraduationSchedule>('graduation-schedule', (signal) => getGraduationSchedule({ signal }))
+/** 졸업 일정 · 교과구분 변경 신청 · 학위취득 유예 — 내 졸업 시기 · 전공 · 학번에 맞는 일정만 */
+export function useGraduationSchedule(profile: StudentProfile) {
+  const params = {
+    graduation: profile.expected_graduation_date ?? null,
+    major: profile.major,
+    admission_year: profile.admission_year,
+  }
+  return useAsync<GraduationSchedule>(`graduation-schedule:${JSON.stringify(params)}`, (signal) =>
+    getGraduationSchedule(params, { signal }),
+  )
 }

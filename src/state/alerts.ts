@@ -1,6 +1,6 @@
 import type { Course, EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
 import { formatCredits } from '@/components/ui/helpers'
-import { FILL_GUIDES } from '@/content/fillGuides'
+import { fillGuideFor } from '@/content/fillGuides'
 import { guideFor } from '@/content/majorGuides'
 import { hiddenCreditChecks } from './hiddenCredits'
 import type { RequirementView } from './requirementView'
@@ -122,7 +122,14 @@ export function buildAlerts({
   const guide = guideFor(profile.major).highlight
   const guided = guide && byId(guide.requirementId)
   if (guide && guided && unsat(guided))
-    out.push({ id: guided.id, tone: 'todo', title: guide.title, body: guide.body, to: `${req(guided.id)}#record`, cta: guide.cta })
+    out.push({
+      id: guided.id,
+      tone: 'todo',
+      title: guide.title,
+      body: guide.body,
+      to: `${req(guided.id)}#record`,
+      cta: guide.cta,
+    })
 
   // 7) 지도교수 상담 · 현장실습 등 쌓아야 하는 비교과
   for (const v of views.filter(
@@ -137,7 +144,7 @@ export function buildAlerts({
   )) {
     if (out.some((a) => a.id === v.id)) continue
     const r = v.result
-    const link = FILL_GUIDES[v.id]?.link
+    const link = fillGuideFor(v.id, profile.major)?.link
     out.push({
       id: v.id,
       tone: 'todo',

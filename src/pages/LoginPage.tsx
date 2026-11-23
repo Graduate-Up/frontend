@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError, login, register, sendEmailCode } from '@/api'
+import { ApiError, login, register, resetPassword, sendEmailCode } from '@/api'
 import { Logo } from '@/components/Logo'
 import { useStudent } from '@/state/useStudent'
 import styles from './LoginPage.module.css'
@@ -11,7 +11,8 @@ const POINTS = [
   '놓친 학점과 졸업 절차 마감까지',
 ]
 
-type Mode = 'login' | 'register'
+/** login: 로그인, register: 회원가입, reset: 비밀번호 재설정 */
+type Mode = 'login' | 'register' | 'reset'
 
 const KNU_DOMAIN = '@knu.ac.kr'
 const DOMAIN_ERROR = '경북대학교 이메일로만 로그인할 수 있어요.'
@@ -66,6 +67,7 @@ export function LoginPage() {
   const [notice, setNotice] = useState<string | null>(null)
 
   const isLogin = mode === 'login'
+  const isReset = mode === 'reset'
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -76,7 +78,7 @@ export function LoginPage() {
       return
     }
     if (password.length < 8) {
-      setError('비밀번호는 8자 이상이에요.')
+      setError(isReset ? '새 비밀번호는 8자 이상이에요.' : '비밀번호는 8자 이상이에요.')
       return
     }
     if (!isLogin && !/^\d{6}$/.test(code.trim())) {
@@ -86,6 +88,13 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       const credentials = { email: parsed.email, password }
+      if (isReset) {
+        // 인증번호가 맞으면 비밀번호를 바꾸고 바로 로그인된다
+        await resetPassword({ ...credentials, code: code.trim() })
+        const hasProfile = await loadAccount()
+        navigate(hasProfile ? '/' : '/onboarding', { replace: true })
+        return
+      }
       if (!isLogin) {
         const registration = { ...credentials, code: code.trim() }
         const legacy = parsed.email.split('@')[0]
@@ -108,10 +117,12 @@ export function LoginPage() {
     }
   }
 
-  function switchMode() {
-    setMode(isLogin ? 'register' : 'login')
+  function switchMode(next: Mode = isLogin ? 'register' : 'login') {
+    setMode(next)
     setError(null)
     setNotice(null)
+    setCode('')
+    setCodeSentTo(null)
   }
 
   async function handleSendCode() {
@@ -124,9 +135,13 @@ export function LoginPage() {
     }
     setSending(true)
     try {
-      await sendEmailCode(parsed.email)
+      await sendEmailCode(parsed.email, isReset ? 'reset' : 'register')
       setCodeSentTo(parsed.email)
-      setNotice(`${parsed.email}로 인증번호를 보냈어요. 10분 안에 입력해주세요.`)
+      setNotice(
+        isReset
+          ? `가입된 이메일이면 ${parsed.email}로 재설정 인증번호를 보냈어요. 10분 안에 입력해주세요.`
+          : `${parsed.email}로 인증번호를 보냈어요. 10분 안에 입력해주세요.`,
+      )
     } catch (err) {
       setError(errorMessage(err, 'register'))
     } finally {
@@ -156,9 +171,15 @@ export function LoginPage() {
 
       <section className={styles.panel}>
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>{isLogin ? '로그인' : '회원가입'}</h2>
+          <h2 className={styles.cardTitle}>{isReset ? '비밀번호 재설정' : isLogin ? '로그인' : '회원가입'}</h2>
           <p className={styles.cardSub}>
-            경북대학교 이메일(<strong>{KNU_DOMAIN}</strong>)로만 {isLogin ? '로그인' : '가입'}할 수 있어요.
+            {isReset ? (
+              <>가입한 학교 이메일로 인증번호를 받아 새 비밀번호를 정해요.</>
+            ) : (
+              <>
+                경북대학교 이메일(<strong>{KNU_DOMAIN}</strong>)로만 {isLogin ? '로그인' : '가입'}할 수 있어요.
+              </>
+            )}
           </p>
 
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -211,7 +232,7 @@ export function LoginPage() {
             )}
             {notice && <p className={styles.notice}>{notice}</p>}
             <label className={styles.field}>
-              <span>비밀번호</span>
+              <span>{isReset ? '새 비밀번호' : '비밀번호'}</span>
               <input
                 name="password"
                 type="password"
@@ -223,7 +244,10 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </label>
-            {!isLogin && (
+            {isReset && (
+              <p className={styles.hint}>새 비밀번호는 8자 이상으로 정해주세요. 바꾸면 다른 기기의 로그인은 끊겨요.</p>
+            )}
+            {mode === 'register' && (
               <p className={styles.hint}>
                 비밀번호는 8자 이상으로 정해주세요. 이메일 인증 전에 같은 아이디로 가입했다면 그때 비밀번호를 쓰면
                 기록이 그대로 옮겨져요.
@@ -237,13 +261,20 @@ export function LoginPage() {
             )}
 
             <button type="submit" className={styles.primary} disabled={submitting}>
-              {submitting ? '잠시만요…' : isLogin ? '로그인' : '가입하고 시작하기'}
+              {submitting ? '잠시만요…' : isReset ? '비밀번호 바꾸고 로그인' : isLogin ? '로그인' : '가입하고 시작하기'}
             </button>
           </form>
 
-          <button type="button" className={styles.switch} onClick={switchMode}>
-            {isLogin ? '처음이신가요? 회원가입' : '이미 계정이 있어요. 로그인'}
-          </button>
+          <div className={styles.switchRow}>
+            <button type="button" className={styles.switch} onClick={() => switchMode()}>
+              {isLogin ? '처음이신가요? 회원가입' : isReset ? '로그인으로 돌아가기' : '이미 계정이 있어요. 로그인'}
+            </button>
+            {isLogin && (
+              <button type="button" className={styles.switchSub} onClick={() => switchMode('reset')}>
+                비밀번호를 잊으셨나요?
+              </button>
+            )}
+          </div>
 
           <div className={styles.divider}>또는</div>
 

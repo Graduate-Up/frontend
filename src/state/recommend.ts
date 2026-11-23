@@ -1,4 +1,4 @@
-import type { CatalogCourse, Course, EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
+import type { CareerTag, CatalogCourse, Course, EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
 import { formatCredits } from '@/components/ui/helpers'
 import { STARTUP_CREDITS_ID } from '@/content/substitutions'
 import { isStartupCourse } from './courseCategory'
@@ -8,28 +8,75 @@ import { isLiberalCurriculum, isMajorCurriculum, offeredByDepartment } from './q
  * 과목 추천 — 남은 요건을 채우는 과목만 후보로 고르고, 진로 키워드로 순서를 정한다.
  * (백엔드에 선수과목 · 진로 분류 · 강의계획서 데이터가 없어 과목명 키워드로 나눈다)
  */
-export type Career = 'ai' | 'backend' | 'security' | 'grad' | 'any'
+/** 백엔드 진로 태그 (CareerTag) + '아직 모르겠어요' */
+export type Career = CareerTag | 'any'
 
 export const CAREERS: { id: Career; label: string; keywords: string[] }[] = [
   {
-    id: 'ai',
+    id: 'ai_data',
     label: 'AI · 데이터',
-    keywords: ['인공지능', '기계학습', '딥러닝', '데이터', '데이타', '자연어', '비전', '마이닝', '병렬', '확률', '생물정보'],
+    keywords: [
+      '인공지능',
+      '기계학습',
+      '딥러닝',
+      '데이터',
+      '데이타',
+      '자연어',
+      '비전',
+      '마이닝',
+      '병렬',
+      '확률',
+      '생물정보',
+    ],
   },
   {
     id: 'backend',
     label: '백엔드',
-    keywords: ['데이타베이스', '데이터베이스', '네트워크', '컴퓨터망', '데이타통신', '클라우드', '운영체제', '시스템', '소프트웨어설계', 'SW공학', '오픈소스', '모바일앱'],
+    keywords: [
+      '데이타베이스',
+      '데이터베이스',
+      '네트워크',
+      '컴퓨터망',
+      '데이타통신',
+      '클라우드',
+      '운영체제',
+      '시스템',
+      '소프트웨어설계',
+      'SW공학',
+      '오픈소스',
+      '모바일앱',
+    ],
   },
   {
     id: 'security',
     label: '보안',
-    keywords: ['보안', '정보보호', '암호', '네트워크', '컴퓨터망', '시스템프로그래밍', '운영체제', '컴파일러', '컴퓨터구조'],
+    keywords: [
+      '보안',
+      '정보보호',
+      '암호',
+      '네트워크',
+      '컴퓨터망',
+      '시스템프로그래밍',
+      '운영체제',
+      '컴파일러',
+      '컴퓨터구조',
+    ],
   },
   {
-    id: 'grad',
+    id: 'graduate_study',
     label: '대학원 진학',
-    keywords: ['알고리즘', '수학', '확률', '컴파일러', '프로그래밍언어론', '고급문제해결', '인공지능', '기계학습', '그래픽스', '이산'],
+    keywords: [
+      '알고리즘',
+      '수학',
+      '확률',
+      '컴파일러',
+      '프로그래밍언어론',
+      '고급문제해결',
+      '인공지능',
+      '기계학습',
+      '그래픽스',
+      '이산',
+    ],
   },
   { id: 'any', label: '아직 모르겠어요', keywords: [] },
 ]
@@ -71,7 +118,10 @@ export function recommend(
   }
   const byCode = new Map(catalog.map((c) => [c.course_code, c]))
   const keywords = CAREERS.find((c) => c.id === career)?.keywords ?? []
-  const matches = (c: CatalogCourse) => keywords.some((k) => c.course_name.includes(k))
+  // 백엔드 진로 태그가 있으면 그걸, 없으면 과목명 키워드로
+  const matches = (c: CatalogCourse) =>
+    career !== 'any' &&
+    (c.career_tags?.length ? c.career_tags.includes(career) : keywords.some((k) => c.course_name.includes(k)))
   const grade = currentGrade(profile.admission_year)
 
   const req = (area: string) => e.requirements.find((r) => r.credit_area === area)
@@ -81,8 +131,11 @@ export function recommend(
   const startup = e.requirements.find((r) => r.id === STARTUP_CREDITS_ID)
 
   const out = new Map<string, Recommendation>()
+  // 필수 선수과목(예: 플솝 ABEEK)을 아직 안 들었으면 추천하지 않는다
+  const prerequisitesMet = (c: CatalogCourse) =>
+    c.prerequisite_kind !== 'required' || (c.prerequisite_groups ?? []).every((g) => g.some((code) => taken.has(code)))
   const add = (c: CatalogCourse, fill: string, reason: string, required = false) => {
-    if (taken.has(c.course_code)) return
+    if (taken.has(c.course_code) || !prerequisitesMet(c)) return
     const prev = out.get(c.course_code)
     if (prev) {
       if (!prev.fills.includes(fill)) prev.fills.push(fill)
@@ -126,10 +179,10 @@ export function recommend(
         add(c, `전공 ${formatCredits(Math.min(c.credits, majorShort))}학점 충족`, '부족한 전공 학점을 채워요.')
   if (liberal && liberal.shortfall > 0)
     for (const c of catalog)
-      if (isLiberalCurriculum(c.curriculum_category)) add(c, `교양 ${formatCredits(c.credits)}학점`, '부족한 교양 학점을 채워요.')
+      if (isLiberalCurriculum(c.curriculum_category))
+        add(c, `교양 ${formatCredits(c.credits)}학점`, '부족한 교양 학점을 채워요.')
   if (startup && startup.status !== 'satisfied')
-    for (const c of catalog)
-      if (isStartupCourse(c.course_code)) add(c, '창업 교과목', '창업 교과목 학점을 채워요.')
+    for (const c of catalog) if (isStartupCourse(c.course_code)) add(c, '창업 교과목', '창업 교과목 학점을 채워요.')
   // 졸업학점만 남았으면 전공 과목으로 채운다
   if (!out.size && total && total.shortfall > 0)
     for (const c of catalog)
@@ -167,6 +220,9 @@ function reasonFor(r: Recommendation, career: Career, grade: number) {
   if (r.careerMatch && label) parts.push(`${label} 진로와 관련 있는 과목이에요.`)
   if (!r.required) parts.push(r.reason || '관심 분야 과목이에요.')
   const y = Number(r.course.recommended_year)
-  if (y) parts.push(`교육과정 권장 ${y}학년 ${r.course.recommended_semester ?? ''}학기${y < grade ? ' 과목이라 지금 들어도 좋아요' : ''}.`)
+  if (y)
+    parts.push(
+      `교육과정 권장 ${y}학년 ${r.course.recommended_semester ?? ''}학기${y < grade ? ' 과목이라 지금 들어도 좋아요' : ''}.`,
+    )
   return parts.join(' ').replace(/\s+\./g, '.')
 }

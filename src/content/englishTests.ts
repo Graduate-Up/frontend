@@ -1,3 +1,4 @@
+import type { EnglishTestResult } from '@/api/types'
 /**
  * 공인영어 성적 환산 기준표 (글솝 졸업요건: 영어, 글로벌역량 공지, 2025-03-31)
  * TOEIC 700 / 800에 해당하는 시험별 점수. 700 기준은 경북대 졸업자격인정 실용영어 기준과 같다.
@@ -46,7 +47,15 @@ export const ENGLISH_TESTS: EnglishTest[] = [
     levels: OPIC_LEVELS,
     equivalent: { 700: OPIC_LEVELS.indexOf('IM1'), 800: OPIC_LEVELS.indexOf('IM2') },
   },
-  { id: 'gtelp', label: 'G-TELP (Level 2)', min: 0, max: 100, step: 1, equivalent: { 700: 65, 800: 73 }, note: 'Level 2 점수 기준' },
+  {
+    id: 'gtelp',
+    label: 'G-TELP (Level 2)',
+    min: 0,
+    max: 100,
+    step: 1,
+    equivalent: { 700: 65, 800: 73 },
+    note: 'Level 2 점수 기준',
+  },
   { id: 'ielts', label: 'IELTS', min: 0, max: 9, step: 0.5, equivalent: { 700: 6, 800: 7 } },
 ]
 
@@ -58,6 +67,23 @@ export type EnglishScore = {
   score: number
   /** 응시일 YYYY-MM */
   takenAt?: string
+}
+
+/** 서버에 저장할 영어 시험 원본 (응시일이 있어야 저장할 수 있다) */
+export function toEnglishTestResult(s: EnglishScore | null | undefined): EnglishTestResult | null {
+  if (!s?.takenAt) return null
+  const t = testById(s.test)
+  return { test_type: t.label, raw_score: t.levels ? t.levels[s.score] : s.score, taken_month: s.takenAt }
+}
+
+/** 서버에 저장된 영어 시험 원본 → 화면 입력값 */
+export function fromEnglishTestResult(r: EnglishTestResult | null | undefined): EnglishScore | null {
+  if (!r) return null
+  const t = ENGLISH_TESTS.find((x) => x.label === r.test_type)
+  if (!t) return null
+  const score = t.levels ? t.levels.indexOf(String(r.raw_score)) : Number(r.raw_score)
+  if (score < 0 || Number.isNaN(score)) return null
+  return { test: t.id, score, takenAt: r.taken_month }
 }
 
 export function formatScore(s: EnglishScore) {
@@ -98,7 +124,10 @@ export function scoreValidity(
     const [gy, gm] = expectedGraduation.split('-').map(Number)
     const months = (gy - y) * 12 + (gm - m)
     if (months > 24)
-      return { ok: false, message: '졸업 예정 시점 기준 2년이 지난 성적이라 인정되지 않을 수 있어요. 다시 응시해야 할 수 있어요.' }
+      return {
+        ok: false,
+        message: '졸업 예정 시점 기준 2년이 지난 성적이라 인정되지 않을 수 있어요. 다시 응시해야 할 수 있어요.',
+      }
   }
   return { ok: true }
 }

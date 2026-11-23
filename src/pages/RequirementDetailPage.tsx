@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import type { CreditEntry, EvaluationResponse, GraduationRule, NonacademicRecord, StudentProfile } from '@/api'
-import { FILL_GUIDES, type FillGuide } from '@/content/fillGuides'
+import { fillGuideFor, type FillGuide } from '@/content/fillGuides'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { SubstitutionToggle } from '@/components/SubstitutionToggle'
 import { EnglishSection } from '@/components/EnglishSection'
@@ -116,6 +116,7 @@ function Detail({
   const allRecords = withCourseRecords(courses, records)
   const chosen = chosenSubstitutions(checkMethods)
   const substitution = substitutionFor(profile.major, view.id)
+  const fillGuide = fillGuideFor(view.id, profile.major)
   const substitutionChosen = chosen.has(view.id)
   const substitutionNow = substitution ? substitutionAmount(substitution, allRecords) : 0
   const showNumber = view.group !== 'verification' && !(view.group === 'nonacademic' && r.required === 1 && !view.unit)
@@ -272,9 +273,7 @@ function Detail({
             <RecordCard view={view} record={record} onRecord={onRecord} />
           ))}
 
-        {FILL_GUIDES[view.id]?.guide && FILL_GUIDES[view.id].guide!.placement !== 'side' && (
-          <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />
-        )}
+        {fillGuide?.guide && fillGuide.guide.placement !== 'side' && <FillGuideCard guide={fillGuide.guide} />}
 
         {substitution && (
           <section className={ui.highlight}>
@@ -311,7 +310,7 @@ function Detail({
       <div className={ui.stack}>
         <SourceCard sources={sortSourcesForMajor(view.sources, profile.major)} />
         <HowToFill view={view} pendingCount={split?.pending.length ?? 0} />
-        {FILL_GUIDES[view.id]?.guide?.placement === 'side' && <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />}
+        {fillGuide?.guide?.placement === 'side' && <FillGuideCard guide={fillGuide.guide} />}
         <InquiryCard
           profile={profile}
           studentNumber={studentNumber}
@@ -383,6 +382,7 @@ function EntryTable({ title, entries, names }: { title: string; entries: CreditE
 
 /** 채우는 방법 — 요건 상태에 따라 추천 · 대안 */
 function HowToFill({ view, pendingCount }: { view: RequirementView; pendingCount: number }) {
+  const profile = useProfile()
   const r = view.result
   if (r.status === 'satisfied') return null
 
@@ -423,7 +423,7 @@ function HowToFill({ view, pendingCount }: { view: RequirementView; pendingCount
         sub: '학부 사무실 확인 필요',
       })
   } else {
-    const guide = FILL_GUIDES[r.id]
+    const guide = fillGuideFor(r.id, profile.major)
     // 학부 공지의 방법이 있으면 그것만 (하나면 '추천', 여러 개면 '방법 1 · 2 · 3'), 없으면 공지 확인 안내
     if (guide)
       guide.options.forEach((o, i) =>
