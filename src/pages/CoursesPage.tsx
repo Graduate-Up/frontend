@@ -11,7 +11,14 @@ import { Badge, CategoryBadge, EmptyState, ErrorState, PageIntro, formatCredits,
 import { COURSE_STATUS_OPTIONS } from '@/constants/labels'
 import { KIND_LABEL, KIND_ORDER, classifyCategory, isStartupCourse } from '@/state/courseCategory'
 import { GRADES, SEMESTER_PATTERN, normalizeGrade, normalizeSemester, semesterLabel } from '@/state/courses'
-import { courseNameMap, transcriptCategoryOptions, useCatalog, useEvaluation, useRequirements } from '@/state/queries'
+import {
+  courseNameMap,
+  transcriptCategoryOptions,
+  useCatalog,
+  useEvaluation,
+  useMyProgram,
+  useRequirements,
+} from '@/state/queries'
 import { useProfile, useStudent } from '@/state/useStudent'
 import styles from './CoursesPage.module.css'
 
@@ -27,6 +34,8 @@ export function CoursesPage() {
   const isNonacademic = params.get('tab') === 'nonacademic'
   const rule = useRequirements(profile)
   const catalog = useCatalog(profile)
+  // 학적에서 고른 융합전공 — 성적표에 일반선택으로 찍혀도 그 전공 과목이면 표시한다
+  const myProgram = useMyProgram()
   const evaluation = useEvaluation(profile, courses, records)
 
   // 사이드바 소메뉴(#course-list 등)로 들어오면 그 구역으로 스크롤
@@ -61,6 +70,8 @@ export function CoursesPage() {
 
   const completed = courses.filter((c) => c.status === 'completed')
   const totalCredits = completed.reduce((sum, c) => sum + c.credits, 0)
+  // 이수한 과목 중 내 융합전공 과목 학점 (성적표 교과구분과 상관없이)
+  const programCredits = completed.filter((c) => myProgram.codes.has(c.course_code)).reduce((n, c) => n + c.credits, 0)
   // 성적표 교과구분 기준 학점 합계
   const byKind = KIND_ORDER.map((kind) => ({
     kind,
@@ -86,6 +97,12 @@ export function CoursesPage() {
               {KIND_LABEL[k.kind]} <b>{formatCredits(k.credits)}</b>학점
             </span>
           ))}
+          {myProgram.program && (
+            <span className={styles.kindItem} data-kind="program">
+              <i />
+              {myProgram.program.name} 과목 <b>{formatCredits(programCredits)}</b>학점
+            </span>
+          )}
         </div>
         {evaluation.status === 'error' && (
           <div style={{ marginTop: 12 }}>
@@ -150,6 +167,11 @@ export function CoursesPage() {
                         <td>{formatCredits(c.credits)}</td>
                         <td>
                           <CategoryBadge category={c.transcript_category} code={c.course_code} />
+                          {myProgram.codes.has(c.course_code) && (
+                            <span className={styles.programTag} title={myProgram.program?.name}>
+                              내 융합전공
+                            </span>
+                          )}
                         </td>
                         <td>
                           <select

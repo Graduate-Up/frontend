@@ -1,4 +1,5 @@
 import {
+  getConvergencePrograms,
   getGraduationSchedule,
   getRequirements,
   previewEvaluation,
@@ -7,6 +8,7 @@ import {
   type Course,
   type GraduationRule,
   type GraduationSchedule,
+  type ProgramSummary,
   type NonacademicRecord,
   type StudentProfile,
 } from '@/api'
@@ -154,4 +156,17 @@ export function useGraduationSchedule(profile: StudentProfile) {
   return useAsync<GraduationSchedule>(`graduation-schedule:${JSON.stringify(params)}`, (signal) =>
     getGraduationSchedule(params, { signal }),
   )
+}
+
+/** 융합전공 목록 (과목 포함). 못 불러오면 data 없이 error */
+export function useConvergencePrograms() {
+  return useAsync<ProgramSummary[]>('convergence-programs', (signal) => getConvergencePrograms({ signal }))
+}
+
+/** 내가 고른 융합전공과 그 과목코드 (과목 목록을 안 주는 백엔드면 빈 집합) */
+export function useMyProgram() {
+  const { convergenceProgram } = useStudent()
+  const list = useConvergencePrograms()
+  const program = convergenceProgram ? list.data?.find((p) => p.id === convergenceProgram) : undefined
+  return { program, codes: new Set(program?.courses?.map((c) => c.code) ?? []) }
 }

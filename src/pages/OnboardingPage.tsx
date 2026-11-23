@@ -1,19 +1,13 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import {
-  getConvergencePrograms,
-  getMajors,
-  getTracks,
-  type MajorCode,
-  type MultiMajor,
-  type StudentStatus,
-} from '@/api'
+import { getMajors, getTracks, type MajorCode, type MultiMajor, type StudentStatus } from '@/api'
 import { Logo } from '@/components/Logo'
 import { ErrorState, Loading, errorText, ui } from '@/components/ui'
 import { MULTI_MAJOR_OPTIONS, STUDENT_STATUS_OPTIONS } from '@/constants/labels'
 import { useStudent } from '@/state/useStudent'
 import { CONVERGENCE_PROGRAMS, PROGRAM_MULTI_MAJORS } from '@/content/programs'
 import { ABEEK_LAST_GRADUATION } from '@/state/profile'
+import { useConvergencePrograms } from '@/state/queries'
 import { useAsync } from '@/state/useAsync'
 import { MAJOR_LABEL } from '@/types/student'
 import styles from './OnboardingPage.module.css'
@@ -52,7 +46,7 @@ function OnboardingForm() {
   // 어떤 융합전공인지 — '' 는 복수 · 연계전공이라 해당 없음
   const [program, setProgram] = useState<string>(convergenceProgram ?? '')
   // 백엔드 융합전공 목록 (못 불러오면 예비 목록 · 이 브라우저에만 저장)
-  const programList = useAsync('convergence-programs', (signal) => getConvergencePrograms({ signal }))
+  const programList = useConvergencePrograms()
   const programOptions = programList.data?.filter((p) => p.kind === 'convergence') ?? CONVERGENCE_PROGRAMS
   const showProgram = PROGRAM_MULTI_MAJORS.includes(multiMajor)
   const [status, setStatus] = useState<StudentStatus>(profile?.student_status ?? 'new')
