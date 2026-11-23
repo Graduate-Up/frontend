@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { COURSE_SECTIONS } from '@/routes/nav'
+import { useHashScroll } from '@/state/useHashScroll'
 import type { Course, CourseStatus, CreditEntry, Grade, GraduationRule } from '@/api'
 import { NonacademicForm } from '@/components/NonacademicForm'
 import { AddCourseForm } from '@/components/courses/AddCourseForm'
@@ -23,18 +24,13 @@ export function CoursesPage() {
   const profile = useProfile()
   const { kind, courses, setCourses, records, setRecord } = useStudent()
   const [params, setParams] = useSearchParams()
-  const { hash } = useLocation()
   const isNonacademic = params.get('tab') === 'nonacademic'
   const rule = useRequirements(profile)
   const catalog = useCatalog(profile)
   const evaluation = useEvaluation(profile, courses, records)
 
   // 사이드바 소메뉴(#course-list 등)로 들어오면 그 구역으로 스크롤
-  useEffect(() => {
-    if (!hash) return
-    const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50)
-    return () => clearTimeout(t)
-  }, [hash])
+  useHashScroll()
 
   const catalogItems = useMemo(() => catalog.data?.items ?? [], [catalog.data])
   const names = useMemo(() => {

@@ -433,7 +433,7 @@
   color: var(--color-text);
 }
 
-/* 요건을 정한 곳 (경북대 · 컴퓨터학부) */
+/* 요건을 정한 곳 (경북대 · 컴퓨터학부) — 상태 배지와 겹치지 않게 회색 하나로, 글자로만 구분 */
 .scope {
   display: inline-flex;
   align-items: center;
@@ -448,14 +448,9 @@
   vertical-align: middle;
 }
 
-.scope-university {
-  border-color: #c7b8f5;
-  background: var(--color-check-soft);
-  color: var(--color-check);
-}
-
+.scope-university,
 .scope-department {
-  border-color: #b9c7ea;
-  background: var(--color-navy-soft);
-  color: var(--color-navy);
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text-sub);
 }
