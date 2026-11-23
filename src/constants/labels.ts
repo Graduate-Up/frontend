@@ -87,6 +87,8 @@ const REASON_LABEL: Record<string, string> = {
   'Credit classification or approval is pending': '인정 영역 확인이나 승인이 남은 과목이 있어요.',
   'Matched course codes and applicable offering and transcript classification rules':
     '과목코드와 개설 학부 · 교과구분 기준으로 확인했어요.',
+  'Matched course codes or configured names and applied transcript classification rules':
+    '과목코드(또는 지정된 과목명)와 성적표 교과구분 기준으로 확인했어요.',
   'Compared with submitted nonacademic records': '입력한 비교과 기록과 비교했어요.',
   'Additional evidence or interpretation is needed to automate this requirement':
     '자동으로 판정할 수 없어요. 증빙을 학부 사무실에서 확인해야 해요.',

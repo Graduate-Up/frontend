@@ -12,12 +12,19 @@ import {
 } from '@/api'
 import { resolveLiberalAreas } from '@/content/liberalAreas'
 import { DEPARTMENT_OFFERED_OVERRIDES } from '@/content/ruleOverrides'
-import { patchStartupCredits, withCourseRecords, withSubstitutions } from '@/content/substitutions'
+import {
+  chosenSubstitutions,
+  patchStartupCredits,
+  patchSubstitutions,
+  withCourseRecords,
+  withSubstitutions,
+} from '@/content/substitutions'
 import { DEFAULT_TRANSCRIPT_CATEGORIES } from '@/constants/labels'
 import { MULTI_MAJOR_CATEGORIES, classifyByTranscript } from './courseCategory'
 import { finalizeEvaluation, stripVerificationRequirements } from './evaluationTotals'
 import { stripOtherMajorSources, stripOtherMajorSourcesFromEvaluation } from './sources'
 import { useAsync } from './useAsync'
+import { useStudent } from './useStudent'
 
 /** 프로필에 맞는 졸업요건 */
 export function useRequirements(profile: StudentProfile) {
@@ -30,22 +37,35 @@ export function useRequirements(profile: StudentProfile) {
 
 /** 이수 과목으로 판정 — 과목이 없어도 요건 목록을 받기 위해 요청한다 */
 export function useEvaluation(profile: StudentProfile, courses: Course[], records: NonacademicRecord[] = []) {
-  return useAsync(`eval:${JSON.stringify(profile)}:${JSON.stringify(courses)}:${JSON.stringify(records)}`, (signal) =>
-    previewEvaluation(
-      {
-        student_profile: profile,
-        completed_courses: courses,
-        nonacademic_records: withSubstitutions(profile.major, withCourseRecords(courses, records)),
-      },
-      { signal },
-    ).then((e) =>
-      finalizeEvaluation(
-        resolveLiberalAreas(
-          patchStartupCredits(classifyByTranscript(stripOtherMajorSourcesFromEvaluation(e, profile.major)), courses),
-          courses,
+  // 학생이 고른 대체 인정 (예: 스타트업 창업활동 → 창업 교과목 15학점)
+  const { checkMethods } = useStudent()
+  const chosen = chosenSubstitutions(checkMethods)
+  const chosenKey = [...chosen].sort().join(',')
+  return useAsync(
+    `eval:${JSON.stringify(profile)}:${JSON.stringify(courses)}:${JSON.stringify(records)}:${chosenKey}`,
+    (signal) =>
+      previewEvaluation(
+        {
+          student_profile: profile,
+          completed_courses: courses,
+          nonacademic_records: withSubstitutions(profile.major, withCourseRecords(courses, records), chosen),
+        },
+        { signal },
+      ).then((e) =>
+        finalizeEvaluation(
+          resolveLiberalAreas(
+            patchSubstitutions(
+              patchStartupCredits(
+                classifyByTranscript(stripOtherMajorSourcesFromEvaluation(e, profile.major)),
+                courses,
+              ),
+              profile.major,
+              chosen,
+            ),
+            courses,
+          ),
         ),
       ),
-    ),
   )
 }
 

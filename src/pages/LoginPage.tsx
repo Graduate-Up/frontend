@@ -6,7 +6,7 @@ import { useStudent } from '@/state/useStudent'
 import styles from './LoginPage.module.css'
 
 const POINTS = [
-  '5개 세부전공 · 2017~2026학번 요건 지원',
+  '5개 세부전공 · 2019~2026학번 요건 지원',
   '모든 판정에 출처 공지 링크',
   '놓친 학점과 졸업 절차 마감까지',
 ]

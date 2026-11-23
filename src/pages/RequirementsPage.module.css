@@ -212,6 +212,22 @@
   font-size: 13px;
 }
 
+/* 이수한 과목은 진하게, 아직 안 들은 과목은 흐리게 */
+.courses li[data-status='completed'] {
+  box-shadow: inset 0 0 0 1.5px var(--color-teal);
+  background: var(--color-teal-soft);
+}
+
+.courses li[data-status='completed'] .courseName {
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.courses li[data-status='missing'] .courseName {
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
 .courseName {
   overflow: hidden;
   font-weight: 700;

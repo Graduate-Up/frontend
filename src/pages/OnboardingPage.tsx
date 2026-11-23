@@ -18,13 +18,17 @@ const TRACK_LABEL_SUFFIX: Record<string, string> = {
 /** 다중전공 트랙은 다전공(또는 교직과정)을 반드시 해야 한다 */
 const MULTI_MAJOR_TRACK = 'multi_major'
 
-const ADMISSION_YEARS = Array.from({ length: 10 }, (_, i) => 2026 - i) // 2026 ~ 2017
+/** 지원 학번: 2019 ~ 2026 */
+const ADMISSION_YEARS = Array.from({ length: 8 }, (_, i) => 2026 - i)
 
 export function OnboardingPage() {
   const navigate = useNavigate()
   const { kind, profile, studentNumber, saveProfile } = useStudent()
 
-  const [year, setYear] = useState<number | null>(profile?.admission_year ?? null)
+  // 지원하지 않는 학번(2018 이하)으로 저장돼 있었으면 다시 고르게 한다
+  const [year, setYear] = useState<number | null>(
+    profile && ADMISSION_YEARS.includes(profile.admission_year) ? profile.admission_year : null,
+  )
   const [major, setMajor] = useState<MajorCode | null>(profile?.major ?? null)
   const [track, setTrack] = useState<string | null>(profile?.track ?? null)
   const [variant, setVariant] = useState<string | null>(profile?.track_variant ?? null)

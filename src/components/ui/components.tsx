@@ -43,7 +43,13 @@ export function RequiredCourseBadge({ status }: { status: RequiredCourseResult['
 export function ProgressBar({ value, tone }: { value: number; tone?: 'bad' }) {
   const pct = Math.max(0, Math.min(1, value)) * 100
   return (
-    <div className={styles.bar} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      className={styles.bar}
+      role="progressbar"
+      aria-valuenow={Math.round(pct)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div className={styles.barFill} data-tone={tone} style={{ width: `${pct}%` }} />
     </div>
   )
@@ -127,6 +133,18 @@ export function CategoryBadge({ category, code }: { category: string; code?: str
           창업
         </span>
       )}
+    </span>
+  )
+}
+
+/** 요건을 정한 곳 라벨 — 경북대(학교 전체) · 컴퓨터학부 */
+export function ScopeBadge({ scope }: { scope: 'university' | 'department' }) {
+  return (
+    <span
+      className={`${styles.scope} ${styles[`scope-${scope}`]}`}
+      title={scope === 'university' ? '경북대 전체 졸업 규정' : '컴퓨터학부 졸업요건'}
+    >
+      {scope === 'university' ? '경북대' : '컴퓨터학부'}
     </span>
   )
 }

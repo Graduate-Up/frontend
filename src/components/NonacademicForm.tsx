@@ -15,7 +15,11 @@ import { StatusBadge, formatCredits, ui } from '@/components/ui'
 import {
   FIELD_PRACTICE_ID,
   STARTUP_CREDITS_ID,
+  SUBSTITUTE_METHOD,
+  SUBSTITUTIONS,
   appliedSubstitutions,
+  chosenSubstitutions,
+  substitutionAmount,
   fieldPracticeCourses,
   startupCourses,
   substitutionFor,
@@ -66,14 +70,21 @@ export function NonacademicForm({
   onRecord: (requirementId: string, amount: number | null) => void
   profile: StudentProfile
 }) {
-  const { courses } = useStudent()
+  const { courses, checkMethods, setCheckMethod } = useStudent()
   const autoCourses: Record<string, Course[]> = {
     [FIELD_PRACTICE_ID]: fieldPracticeCourses(courses),
     [STARTUP_CREDITS_ID]: startupCourses(courses),
   }
   // 과목으로 채워진 기록까지 합친 값 (대체 인정 판단용)
   const allRecords = withCourseRecords(courses, records)
-  const reqs = rule.nonacademic_requirements
+  // 대체 인정을 고르면 근거 요건(창업 교과목)의 이름 · 기준이 판정 결과처럼 15학점으로 바뀐다
+  const raisedSources = new Set(
+    SUBSTITUTIONS.filter((x) => chosenSubstitutions(checkMethods).has(x.target)).map((x) => x.source),
+  )
+  const reqs = rule.nonacademic_requirements.map((r) => {
+    const result = raisedSources.has(r.id) ? evaluation?.requirements.find((x) => x.id === r.id) : undefined
+    return result ? { ...r, name: result.name, minimum: result.required } : r
+  })
   if (!reqs.length) return <div className={ui.state}>이 학번 · 전공에는 입력할 비교과 요건이 없어요.</div>
 
   const manual = reqs.filter(
@@ -82,7 +93,8 @@ export function NonacademicForm({
   const auto = reqs.filter((r) => AUTO_COMPUTED_IDS.has(r.id))
   const numeric = manual.filter((r) => !isCheckType(r))
   const checks = manual.filter(isCheckType)
-  const substituted = appliedSubstitutions(profile.major, allRecords)
+  const chosen = chosenSubstitutions(checkMethods)
+  const substituted = appliedSubstitutions(profile.major, allRecords, chosen)
   const resultOf = (id: string) => evaluation?.requirements.find((r) => r.id === id)
   const recordOf = (id: string) => records.find((r) => r.requirement_id === id)
 
@@ -106,7 +118,9 @@ export function NonacademicForm({
                 onSave={(v) => onRecord(req.id, v)}
                 autoNote={
                   autoCourses[req.id]?.length
-                    ? `이수 과목으로 자동 반영 (${formatCredits(autoCourses[req.id].reduce((n, c) => n + c.credits, 0))}학점): ${autoCourses[req.id]
+                    ? `이수 과목으로 자동 반영 (${formatCredits(autoCourses[req.id].reduce((n, c) => n + c.credits, 0))}학점): ${autoCourses[
+                        req.id
+                      ]
                         .map((c) => `${c.course_name ?? c.course_code} ${formatCredits(c.credits)}`)
                         .join(', ')}`
                     : undefined
@@ -129,20 +143,30 @@ export function NonacademicForm({
               const result = resultOf(req.id)
               const sub = substitutionFor(profile.major, req.id)
               const applied = substituted.get(req.id)
-              const srcAmount = sub
-                ? Math.max(0, ...allRecords.filter((x) => x.requirement_id === sub.source).map((x) => x.amount))
-                : 0
+              const srcAmount = sub ? substitutionAmount(sub, allRecords) : 0
+              const subChosen = !!sub && chosen.has(sub.target)
               const autoByCourse = !record && result?.status === 'satisfied' && autoSatisfiedReason(result.reason)
               return (
                 <div key={req.id} className={styles.row}>
                   <RowInfo req={req} status={result?.status} />
                   {autoByCourse && <span className={styles.hint}>이수 과목으로 자동 충족: {result!.reason}</span>}
                   {sub && (
-                    <span className={applied ? styles.hint : styles.subHint}>
-                      {applied
-                        ? `${sub.label} 인정 — 창업 교과목 ${formatCredits(srcAmount)}학점 입력됨`
-                        : `창업 교과목 ${formatCredits(sub.minimum)}학점을 이수하면 대신 인정돼요 (지금 ${formatCredits(srcAmount)}학점)`}
-                    </span>
+                    <div className={styles.subRow}>
+                      <span className={applied ? styles.hint : styles.subHint}>
+                        {applied
+                          ? `${sub.label} 인정 — 창업 교과목 ${formatCredits(srcAmount)}학점`
+                          : subChosen
+                            ? `${sub.label} 중 — 창업 교과목 ${formatCredits(srcAmount)} / ${formatCredits(sub.minimum)}학점`
+                            : `창업 교과목 ${formatCredits(sub.minimum)}학점으로 대신 채울 수 있어요 (지금 ${formatCredits(srcAmount)}학점)`}
+                      </span>
+                      <button
+                        type="button"
+                        className={subChosen ? ui.linkButton : styles.subButton}
+                        onClick={() => setCheckMethod(sub.target, subChosen ? null : SUBSTITUTE_METHOD)}
+                      >
+                        {subChosen ? '대체 취소' : `창업 교과목 ${formatCredits(sub.minimum)}학점으로 채울게요`}
+                      </button>
+                    </div>
                   )}
                   <label className={styles.check}>
                     <input
@@ -244,9 +268,9 @@ function NumericRow({
     <form className={styles.row} onSubmit={handleSubmit}>
       <RowInfo req={req} status={status} />
       {autoNote && <span className={styles.hint}>{autoNote}</span>}
-      {FILL_GUIDES[req.id] && (
-        <a className={styles.guideLink} href={FILL_GUIDES[req.id].url} target="_blank" rel="noreferrer">
-          {FILL_GUIDES[req.id].linkLabel} ↗
+      {FILL_GUIDES[req.id]?.link && (
+        <a className={styles.guideLink} href={FILL_GUIDES[req.id].link!.url} target="_blank" rel="noreferrer">
+          {FILL_GUIDES[req.id].link!.label} ↗
         </a>
       )}
       <div className={styles.inputWrap}>

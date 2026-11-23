@@ -1,7 +1,8 @@
 import type { EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
 import { EnglishAlternativeNote, EnglishScoreInput } from '@/components/EnglishScoreInput'
-import { StatusBadge, ui } from '@/components/ui'
+import { ScopeBadge, StatusBadge, ui } from '@/components/ui'
 import { useEnglish } from '@/state/english'
+import { scopeOf } from '@/state/requirementView'
 import styles from './EnglishSection.module.css'
 
 /** 공인영어 성적 + 실용영어 졸업자격인정 충족 방법 */
@@ -30,12 +31,12 @@ export function EnglishSection({
       <div className={styles.reqs}>
         {en.scoreReqs.map((r) => (
           <span key={r.id} className={styles.req}>
-            {r.name} · TOEIC {r.minimum}점 {statusOf(r.id) && <StatusBadge status={statusOf(r.id)!} />}
+            <ScopeBadge scope={scopeOf(r.id)} /> {r.name} · TOEIC {r.minimum}점 {statusOf(r.id) && <StatusBadge status={statusOf(r.id)!} />}
           </span>
         ))}
         {en.practical && (
           <span className={styles.req}>
-            {en.practical.name} {statusOf(en.practical.id) && <StatusBadge status={statusOf(en.practical.id)!} />}
+            <ScopeBadge scope={scopeOf(en.practical.id)} /> {en.practical.name} {statusOf(en.practical.id) && <StatusBadge status={statusOf(en.practical.id)!} />}
           </span>
         )}
       </div>
@@ -58,7 +59,7 @@ export function EnglishSection({
             <h3>{en.practical.name} · 충족 방법</h3>
             <p className={ui.muted}>
               {en.scoreReqs.length > 0
-                ? '학부 영어 요건과 별도로 경북대 졸업자격인정원에 제출해 인정받아야 해요. 둘 다 채워야 졸업할 수 있어요.'
+                ? '컴퓨터학부 영어 요건과 별개인 경북대 졸업자격인정제예요. 공인영어 성적 하나로 둘 다 채울 수 있지만, 아래 다른 방법으로 채웠다면 학부 영어 요건은 따로 남아요.'
                 : '경북대 졸업자격인정원에 제출해 인정받아야 해요. 아래 중 하나를 채우면 돼요.'}
             </p>
           </div>
