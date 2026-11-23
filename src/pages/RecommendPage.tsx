@@ -421,12 +421,10 @@ function ProgramsCard({ programs, myProgram }: { programs: ProgramRecommendation
         {programs.map((p) => (
           <li key={p.id} data-mine={p.id === myProgram || undefined}>
             <div className={styles.programHead}>
-              <b>
-                {p.name}
-                {p.id === myProgram && <span className={styles.mine}>내 융합전공</span>}
-              </b>
+              <b>{p.name}</b>
               <span className={styles.kind}>{p.kind === 'convergence' ? '융합전공' : '복수전공'}</span>
             </div>
+            {p.id === myProgram && <span className={styles.mine}>내 융합전공</span>}
             <p>
               {p.overlapping_course_codes.length > 0 &&
                 `이미 들은 과목 ${p.overlapping_course_codes.length}개가 겹쳐요`}
