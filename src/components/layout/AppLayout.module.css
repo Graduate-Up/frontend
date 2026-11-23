@@ -65,6 +65,38 @@
   background: #5fd3c2;
 }
 
+/* 소메뉴 (이수 내역 → 이수 과목 확인 · 수기로 추가 · 성적 불러오기) */
+.navGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.subNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 4px 17px;
+  padding-left: 10px;
+  border-left: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.subLink {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.subLink:hover {
+  background: rgb(255 255 255 / 0.04);
+  color: var(--sidebar-text);
+}
+
+.subActive {
+  font-weight: 700;
+  color: #5fd3c2;
+}
+
 .badge {
   margin-left: auto;
   padding: 1px 6px;

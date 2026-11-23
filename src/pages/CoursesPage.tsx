@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
+import { COURSE_SECTIONS } from '@/routes/nav'
 import type { Course, CourseStatus, CreditEntry, Grade, GraduationRule } from '@/api'
 import { NonacademicForm } from '@/components/NonacademicForm'
 import { AddCourseForm } from '@/components/courses/AddCourseForm'
@@ -22,10 +23,18 @@ export function CoursesPage() {
   const profile = useProfile()
   const { kind, courses, setCourses, records, setRecord } = useStudent()
   const [params, setParams] = useSearchParams()
+  const { hash } = useLocation()
   const isNonacademic = params.get('tab') === 'nonacademic'
   const rule = useRequirements(profile)
   const catalog = useCatalog(profile)
   const evaluation = useEvaluation(profile, courses, records)
+
+  // 사이드바 소메뉴(#course-list 등)로 들어오면 그 구역으로 스크롤
+  useEffect(() => {
+    if (!hash) return
+    const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50)
+    return () => clearTimeout(t)
+  }, [hash])
 
   const catalogItems = useMemo(() => catalog.data?.items ?? [], [catalog.data])
   const names = useMemo(() => {
@@ -308,17 +317,29 @@ export function CoursesPage() {
             {/* 과목이 있으면 목록 → 직접 입력 → 성적 가져오기, 비어 있으면 가져오기부터 */}
             {courses.length > 0 ? (
               <>
-                {courseList}
-                <h2 className={`${ui.heading} ${styles.sectionHeading}`}>추가할래요</h2>
-                {manualInput}
-                <h2 className={`${ui.heading} ${styles.sectionHeading}`}>새로 입력할래요</h2>
-                {portalImport}
+                <div id={COURSE_SECTIONS.list} className={styles.block}>
+                  {courseList}
+                </div>
+                <div id={COURSE_SECTIONS.manual} className={styles.block}>
+                  <h2 className={`${ui.heading} ${styles.sectionHeading}`}>추가할래요</h2>
+                  {manualInput}
+                </div>
+                <div id={COURSE_SECTIONS.import} className={styles.block}>
+                  <h2 className={`${ui.heading} ${styles.sectionHeading}`}>새로 입력할래요</h2>
+                  {portalImport}
+                </div>
               </>
             ) : (
               <>
-                {portalImport}
-                {manualInput}
-                {courseList}
+                <div id={COURSE_SECTIONS.import} className={styles.block}>
+                  {portalImport}
+                </div>
+                <div id={COURSE_SECTIONS.manual} className={styles.block}>
+                  {manualInput}
+                </div>
+                <div id={COURSE_SECTIONS.list} className={styles.block}>
+                  {courseList}
+                </div>
               </>
             )}
           </>

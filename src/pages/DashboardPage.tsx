@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import type { EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { HighlightCard, InfoCard, RoadmapCard } from '@/components/side/GuideCards'
+import { AlertsCard, InfoCard, RoadmapCard } from '@/components/side/GuideCards'
 import { InquiryCard } from '@/components/side/SideCards'
 import { ErrorState, Loading, Pill, ScopeBadge, StatusBadge, formatCredits, ui } from '@/components/ui'
+import { OFFICIAL_ENGLISH_KEY } from '@/content/englishTests'
+import { buildAlerts } from '@/state/alerts'
 import { useEvaluation, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
@@ -64,6 +66,15 @@ function Dashboard({
   result: EvaluationResponse
 }) {
   const views = buildRequirementViews(rule, result)
+  const { courses, englishScores } = useStudent()
+  const alerts = buildAlerts({
+    profile,
+    views,
+    rule,
+    evaluation: result,
+    courses,
+    hasEnglishScore: !!englishScores[OFFICIAL_ENGLISH_KEY],
+  })
   const head = courseCount
     ? headline(result, views)
     : { title: '들은 과목을 입력하면 판정을 시작해요', sub: '지금은 내 학적 기준으로 채워야 할 요건만 보여드려요.' }
@@ -141,7 +152,7 @@ function Dashboard({
 
         <div className={ui.stack}>
           <RoadmapCard profile={profile} />
-          <HighlightCard profile={profile} views={views} />
+          <AlertsCard alerts={alerts} />
           <InfoCard profile={profile} sources={rule?.sources ?? []} />
           <PendingCard views={views} />
           <InquiryCard profile={profile} studentNumber={studentNumber} />
@@ -162,7 +173,11 @@ function RequirementRow({ view }: { view: RequirementView }) {
       </div>
       <span className={styles.rowValue}>{view.valueText}</span>
       <span className={styles.rowStatus}>
-        <StatusBadge status={view.result.status} notStarted={view.notStarted} />
+        <StatusBadge
+          status={view.result.status}
+          notStarted={view.notStarted}
+          notApplicable={view.result.not_applicable}
+        />
       </span>
     </Link>
   )

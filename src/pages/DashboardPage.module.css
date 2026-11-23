@@ -182,11 +182,15 @@
 }
 
 .rowName strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 700;
 }
 
-.rowName span {
+/* 이름 아래 설명 줄만 (이름 안의 경북대 · 컴퓨터학부 라벨 색은 그대로) */
+.rowName > span {
   overflow: hidden;
   font-size: 12px;
   color: var(--color-text-muted);

@@ -79,26 +79,64 @@ li[data-state='past'] p {
   color: var(--color-teal-dark);
 }
 
-.highlightBody {
-  margin-top: 10px;
+
+
+
+/* 지금 챙길 것 */
+.alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alerts li {
+  padding: 12px 14px;
+  border-left: 3px solid var(--color-teal);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+}
+
+.alerts li[data-tone='short'] {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.alerts strong {
+  display: block;
   font-size: 13px;
-  line-height: 1.75;
-  color: var(--color-teal-dark);
-}
-
-.cta {
-  display: inline-flex;
-  align-items: center;
-  height: 42px;
-  margin-top: 16px;
-  padding: 0 18px;
-  border-radius: var(--radius-md);
-  background: var(--color-teal-dark);
-  font-size: 14px;
   font-weight: 800;
-  color: #fff;
 }
 
-.cta:hover {
-  background: #096a5f;
+.alerts p {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.alertLinks {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alertLinks a {
+  color: var(--color-navy);
+}
+
+.alerts li[data-tone='short'] .alertLinks a {
+  color: var(--color-danger);
+}
+
+.alertMore {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-navy);
 }

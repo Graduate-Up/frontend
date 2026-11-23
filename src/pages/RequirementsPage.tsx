@@ -7,6 +7,7 @@ import {
   Loading,
   ProgressBar,
   RequiredCourseBadge,
+  isNotNeeded,
   ScopeBadge,
   Sources,
   StatusBadge,
@@ -24,6 +25,8 @@ import {
   type RequirementView,
 } from '@/state/requirementView'
 import { useProfile, useStudent } from '@/state/useStudent'
+import { SubstitutionToggle } from '@/components/SubstitutionToggle'
+import { chosenSubstitutions } from '@/content/substitutions'
 import styles from './RequirementsPage.module.css'
 
 type Filter = 'all' | 'unsatisfied' | 'pending' | 'satisfied'
@@ -169,6 +172,9 @@ function MyRequirements({
 }
 
 function RequirementItem({ view }: { view: RequirementView }) {
+  const { checkMethods } = useStudent()
+  // 대체를 고른 상태면 충족돼도 취소할 수 있게 버튼을 남긴다
+  const substitutionChosen = chosenSubstitutions(checkMethods).has(view.id)
   const r = view.result
   const numeric = view.group !== 'verification' && !(view.group === 'nonacademic' && r.required === 1 && !view.unit)
 
@@ -178,7 +184,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
         <div className={styles.itemTitle}>
           <ScopeBadge scope={view.scope} />
           <h3>{view.name}</h3>
-          <StatusBadge status={r.status} notStarted={view.notStarted} />
+          <StatusBadge status={r.status} notStarted={view.notStarted} notApplicable={r.not_applicable} />
         </div>
         <Link to={`/requirements/${encodeURIComponent(view.id)}`} className={styles.more}>
           자세히 ›
@@ -208,14 +214,16 @@ function RequirementItem({ view }: { view: RequirementView }) {
       )}
 
       <p className={styles.reason}>{statusMessage(view)}</p>
+      {view.result.status !== 'satisfied' || substitutionChosen ? <SubstitutionToggle targetId={view.id} /> : null}
 
       {!!r.required_courses?.length && (
         <ul className={styles.courses}>
           {r.required_courses.map((c) => (
-            <li key={c.course_code} data-status={c.status}>
-              <RequiredCourseBadge status={c.status} />
+            <li key={c.course_code} data-status={isNotNeeded(r.status, c.status) ? 'not_needed' : c.status}>
+              <RequiredCourseBadge status={c.status} notNeeded={isNotNeeded(r.status, c.status)} />
               <span className={styles.courseName}>{c.course_name}</span>
               <span className={ui.muted}>{c.course_code}</span>
+              {isNotNeeded(r.status, c.status) && <small className={styles.notNeeded}>채울 필요 없어요.</small>}
             </li>
           ))}
         </ul>

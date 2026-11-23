@@ -9,21 +9,19 @@ import type {
   NonacademicRequirement,
   StudentProfile,
 } from '@/api'
+import { SubstitutionToggle } from '@/components/SubstitutionToggle'
 import { EnglishSection } from '@/components/EnglishSection'
 import { LiberalAreaPicker } from '@/components/LiberalAreaPicker'
 import { StatusBadge, formatCredits, ui } from '@/components/ui'
 import {
   FIELD_PRACTICE_ID,
   STARTUP_CREDITS_ID,
-  SUBSTITUTE_METHOD,
   SUBSTITUTIONS,
   appliedSubstitutions,
   chosenSubstitutions,
-  substitutionAmount,
   fieldPracticeCourses,
   startupCourses,
   substitutionFor,
-  withCourseRecords,
 } from '@/content/substitutions'
 import { useStudent } from '@/state/useStudent'
 import { PRACTICAL_ENGLISH_ID, isEnglishScoreRequirement } from '@/content/englishTests'
@@ -70,13 +68,11 @@ export function NonacademicForm({
   onRecord: (requirementId: string, amount: number | null) => void
   profile: StudentProfile
 }) {
-  const { courses, checkMethods, setCheckMethod } = useStudent()
+  const { courses, checkMethods } = useStudent()
   const autoCourses: Record<string, Course[]> = {
     [FIELD_PRACTICE_ID]: fieldPracticeCourses(courses),
     [STARTUP_CREDITS_ID]: startupCourses(courses),
   }
-  // 과목으로 채워진 기록까지 합친 값 (대체 인정 판단용)
-  const allRecords = withCourseRecords(courses, records)
   // 대체 인정을 고르면 근거 요건(창업 교과목)의 이름 · 기준이 판정 결과처럼 15학점으로 바뀐다
   const raisedSources = new Set(
     SUBSTITUTIONS.filter((x) => chosenSubstitutions(checkMethods).has(x.target)).map((x) => x.source),
@@ -94,7 +90,7 @@ export function NonacademicForm({
   const numeric = manual.filter((r) => !isCheckType(r))
   const checks = manual.filter(isCheckType)
   const chosen = chosenSubstitutions(checkMethods)
-  const substituted = appliedSubstitutions(profile.major, allRecords, chosen)
+  const substituted = appliedSubstitutions(profile.major, chosen)
   const resultOf = (id: string) => evaluation?.requirements.find((r) => r.id === id)
   const recordOf = (id: string) => records.find((r) => r.requirement_id === id)
 
@@ -143,29 +139,14 @@ export function NonacademicForm({
               const result = resultOf(req.id)
               const sub = substitutionFor(profile.major, req.id)
               const applied = substituted.get(req.id)
-              const srcAmount = sub ? substitutionAmount(sub, allRecords) : 0
-              const subChosen = !!sub && chosen.has(sub.target)
               const autoByCourse = !record && result?.status === 'satisfied' && autoSatisfiedReason(result.reason)
               return (
                 <div key={req.id} className={styles.row}>
-                  <RowInfo req={req} status={result?.status} />
+                  <RowInfo req={req} status={result?.status} notApplicable={result?.not_applicable} />
                   {autoByCourse && <span className={styles.hint}>이수 과목으로 자동 충족: {result!.reason}</span>}
                   {sub && (
                     <div className={styles.subRow}>
-                      <span className={applied ? styles.hint : styles.subHint}>
-                        {applied
-                          ? `${sub.label} 인정 — 창업 교과목 ${formatCredits(srcAmount)}학점`
-                          : subChosen
-                            ? `${sub.label} 중 — 창업 교과목 ${formatCredits(srcAmount)} / ${formatCredits(sub.minimum)}학점`
-                            : `창업 교과목 ${formatCredits(sub.minimum)}학점으로 대신 채울 수 있어요 (지금 ${formatCredits(srcAmount)}학점)`}
-                      </span>
-                      <button
-                        type="button"
-                        className={subChosen ? ui.linkButton : styles.subButton}
-                        onClick={() => setCheckMethod(sub.target, subChosen ? null : SUBSTITUTE_METHOD)}
-                      >
-                        {subChosen ? '대체 취소' : `창업 교과목 ${formatCredits(sub.minimum)}학점으로 채울게요`}
-                      </button>
+                      <SubstitutionToggle targetId={req.id} />
                     </div>
                   )}
                   <label className={styles.check}>
@@ -175,7 +156,7 @@ export function NonacademicForm({
                       disabled={(!!applied || autoByCourse) && !record}
                       onChange={(e) => onRecord(req.id, e.target.checked ? (req.minimum ?? 1) : null)}
                     />
-                    {autoByCourse ? '자동 충족' : applied && !record ? '대체 인정' : '취득 · 확인 완료'}
+                    {autoByCourse ? '자동 충족' : applied && !record ? '확인 완료 (대체)' : '취득 · 확인 완료'}
                   </label>
                 </div>
               )
@@ -223,12 +204,20 @@ export function NonacademicForm({
   )
 }
 
-function RowInfo({ req, status }: { req: NonacademicRequirement; status?: EvaluationResponse['status'] }) {
+function RowInfo({
+  req,
+  status,
+  notApplicable,
+}: {
+  req: NonacademicRequirement
+  status?: EvaluationResponse['status']
+  notApplicable?: boolean
+}) {
   return (
     <div className={styles.info}>
       <div className={styles.name}>
         <Link to={`/requirements/${encodeURIComponent(req.id)}`}>{req.name}</Link>
-        {status && <StatusBadge status={status} />}
+        {status && <StatusBadge status={status} notApplicable={notApplicable} />}
       </div>
       <span className={ui.muted}>
         {isCheckType(req) ? '' : `기준 ${formatCredits(req.minimum ?? 1)}${unitOf(req)} 이상`}

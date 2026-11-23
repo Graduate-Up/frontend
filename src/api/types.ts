@@ -228,6 +228,8 @@ export type RequirementResult = {
   credit_area?: CreditArea | null
   required_courses?: RequiredCourseResult[]
   details?: string[]
+  /** (프론트에서만 붙임) 다른 요건으로 대체해서 이 요건은 해당 없음 — 예: 스타트업 창업활동 → 창업 교과목 15학점 */
+  not_applicable?: boolean
 }
 
 export type CreditEntry = {

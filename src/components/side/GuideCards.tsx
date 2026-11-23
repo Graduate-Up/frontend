@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { Source, StudentProfile } from '@/api'
 import { ui } from '@/components/ui'
-import { formatCredits } from '@/components/ui/helpers'
 import { currentSemesterIndex, currentStepIndex, guideFor } from '@/content/majorGuides'
-import type { RequirementView } from '@/state/requirementView'
+import type { Alert } from '@/state/alerts'
 import styles from './GuideCards.module.css'
 
 export function RoadmapCard({ profile }: { profile: StudentProfile }) {
@@ -33,38 +32,6 @@ export function RoadmapCard({ profile }: { profile: StudentProfile }) {
   )
 }
 
-/** 지금부터 챙겨야 할 비교과 하나를 강조 */
-export function HighlightCard({ profile, views }: { profile: StudentProfile; views: RequirementView[] }) {
-  const guide = guideFor(profile.major).highlight
-  const fromGuide = guide && views.find((v) => v.id === guide.requirementId && v.result.status !== 'satisfied')
-  // 전공 전용 문구가 없으면: 횟수 · 학점처럼 쌓아야 하는 비교과 중 아직 못 채운 첫 항목
-  const fallback = views.find(
-    (v) => v.group === 'nonacademic' && !!v.unit && v.unit !== '점' && v.result.status === 'unsatisfied',
-  )
-  const view = fromGuide || fallback
-  if (!view) return null
-
-  const r = view.result
-  const title = fromGuide ? guide!.title : `${view.name}, 지금부터 챙기세요`
-  const body = fromGuide
-    ? guide!.body
-    : `졸업까지 ${formatCredits(r.required)}${view.unit}이 필요해요. 한 번에 채우기 어려우니 학기마다 나눠서 쌓아두세요.`
-  const progress = r.current > 0 ? ` 지금 ${formatCredits(r.current)}${view.unit} 기록했어요.` : ''
-
-  return (
-    <aside className={ui.highlight}>
-      <h3>{title}</h3>
-      <p className={styles.highlightBody}>
-        {body}
-        {progress}
-      </p>
-      <Link to={`/requirements/${encodeURIComponent(view.id)}#record`} className={styles.cta}>
-        {fromGuide ? guide!.cta : '기록 추가 +'}
-      </Link>
-    </aside>
-  )
-}
-
 export function InfoCard({ profile, sources }: { profile: StudentProfile; sources: Source[] }) {
   const info = guideFor(profile.major).info
   if (!info) return null
@@ -86,6 +53,38 @@ export function InfoCard({ profile, sources }: { profile: StudentProfile; source
             source.title
           )}
         </p>
+      )}
+    </aside>
+  )
+}
+
+/** 지금 챙길 것 — 상황에 맞게 부족한 것을 여러 개 (빨강: 입력했는데 부족, 틸: 아직 할 일) */
+export function AlertsCard({ alerts, limit = 5 }: { alerts: Alert[]; limit?: number }) {
+  if (!alerts.length) return null
+  const shown = alerts.slice(0, limit)
+  return (
+    <aside className={ui.sideCard}>
+      <h3>지금 챙길 것 {alerts.length}개</h3>
+      <ul className={styles.alerts}>
+        {shown.map((a) => (
+          <li key={a.id} data-tone={a.tone}>
+            <strong>{a.title}</strong>
+            <p>{a.body}</p>
+            <div className={styles.alertLinks}>
+              <Link to={a.to}>{a.cta}</Link>
+              {a.href && (
+                <a href={a.href} target="_blank" rel="noreferrer">
+                  신청하기 ↗
+                </a>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {alerts.length > shown.length && (
+        <Link to="/requirements" className={styles.alertMore}>
+          {alerts.length - shown.length}개 더 보기 ›
+        </Link>
       )}
     </aside>
   )
