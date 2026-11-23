@@ -184,8 +184,24 @@ export type StudentSettings = StudentProfile & {
   convergence_program?: string | null
 }
 
-/** 융합전공 목록 (GET /convergence-programs) */
-export type ProgramSummary = { id: string; name: string; kind: 'convergence' | 'double_major'; source: Source }
+/** 융합전공 과목 */
+export type ProgramCourse = {
+  code: string
+  name: string
+  credits: number
+  /** 그 융합전공 자료에 적힌 원래 교과구분 */
+  curriculum_category?: string | null
+  career_tags?: CareerTag[]
+}
+
+/** 융합전공 목록 (GET /convergence-programs). courses는 최신 백엔드부터 온다 */
+export type ProgramSummary = {
+  id: string
+  name: string
+  kind: 'convergence' | 'double_major'
+  source: Source
+  courses?: ProgramCourse[]
+}
 
 // ── 판정 (evaluation) ──────────────────────────────────
 

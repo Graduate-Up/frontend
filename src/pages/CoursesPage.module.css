@@ -141,3 +141,21 @@
   gap: 20px;
   scroll-margin-top: 70px;
 }
+
+/* 내 융합전공 과목 (성적표 교과구분과 별개로) — 다전공과 같은 분홍 계열 */
+.kindItem[data-kind='program'] i {
+  background: #b4236b;
+}
+
+.programTag {
+  display: inline-block;
+  margin: 4px 0 0;
+  padding: 1px 6px;
+  border: 1px solid #f3c2d8;
+  border-radius: 4px;
+  background: #fdecf3;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #b4236b;
+}
