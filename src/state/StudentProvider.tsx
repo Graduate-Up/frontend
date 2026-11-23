@@ -12,7 +12,7 @@ import {
   type NonacademicRecord,
   type StudentProfile,
 } from '@/api'
-import type { EnglishScore } from '@/content/englishTests'
+import { OFFICIAL_ENGLISH_KEY, fromEnglishTestResult, type EnglishScore } from '@/content/englishTests'
 import { sampleStudent } from '@/mocks/sampleStudent'
 import { normalizeCourses } from './courses'
 import { normalizeProfile } from './profile'
@@ -61,6 +61,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
 
   /** 다음 저장 때 함께 보낼 교양 영역 요약 (성적표에서 새로 읽어 왔을 때만) */
   const pendingSummary = useRef<LiberalSummary | null>(null)
+  const [liberalSummary, setLiberalSummaryState] = useState<LiberalSummary | null>(null)
 
   // 저장 타이머가 최신 값을 보도록
   const latest = useRef({ courses, records })
@@ -90,7 +91,15 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     const migrate = !!saved && serverEmpty && (localCourses.length > 0 || localRecords.length > 0)
     setCoursesState(migrate || !saved ? localCourses : serverCourses)
     setRecordsState(migrate || !saved ? localRecords : serverRecords)
-    setEnglishScores(storage.get<EnglishMap>(englishKey(user), {}))
+    // 영어 시험 원본은 서버에도 저장돼요 — 이 브라우저에 없으면 서버 값으로 채운다
+    const localEnglish = storage.get<EnglishMap>(englishKey(user), {})
+    const serverEnglish = fromEnglishTestResult(serverRecords.find((r) => r.english_test)?.english_test)
+    setEnglishScores(
+      !localEnglish[OFFICIAL_ENGLISH_KEY] && serverEnglish
+        ? { ...localEnglish, [OFFICIAL_ENGLISH_KEY]: serverEnglish }
+        : localEnglish,
+    )
+    setLiberalSummaryState(saved?.liberal_summary ?? null)
     setCheckMethods(storage.get<MethodMap>(methodsKey(user), {}))
     setSyncStatus(saved ? 'saved' : 'error')
     if (migrate) setChanges((n) => n + 1)
@@ -145,16 +154,18 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   /** 성적표에서 읽은 교양 영역 요약을 서버에 저장한다 (로그인했을 때만) */
   const setLiberalSummary = useCallback<StudentContextValue['setLiberalSummary']>((summary) => {
     pendingSummary.current = summary
+    setLiberalSummaryState(summary)
     setChanges((n) => n + 1)
   }, [])
 
   /** 요건 하나의 기록을 저장 (amount가 null이면 삭제) */
   const setRecord = useCallback<StudentContextValue['setRecord']>(
-    (requirementId, amount) => {
+    (requirementId, amount, englishTest) => {
       setRecordsState((prev) => {
         const rest = prev.filter((r) => r.requirement_id !== requirementId)
-        const next =
-          amount == null ? rest : [...rest, { requirement_id: requirementId, amount, status: 'satisfied' as const }]
+        const record: NonacademicRecord = { requirement_id: requirementId, amount: amount ?? 0, status: 'satisfied' }
+        if (englishTest) record.english_test = englishTest
+        const next = amount == null ? rest : [...rest, record]
         storage.set(recordsKey(owner), next)
         return next
       })
@@ -163,7 +174,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     [owner],
   )
 
-  /** 시험 종류 · 원점수는 서버 스키마에 없어서 이 브라우저에만 둔다 (판정용 환산값은 records로 저장) */
+  /** 화면 입력값 (시험 종류 · 점수 · 응시일). 서버에는 영어 기록의 english_test로 함께 저장된다 */
   const setEnglishScore = useCallback<StudentContextValue['setEnglishScore']>(
     (requirementId, score) => {
       setEnglishScores((prev) => {
@@ -231,6 +242,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     setStudentNumber(null)
     setCoursesState([])
     setRecordsState([])
+    setLiberalSummaryState(null)
     setEnglishScores({})
     setCheckMethods({})
     setSyncStatus('idle')
@@ -253,6 +265,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
       records,
       setRecord,
       setLiberalSummary,
+      liberalSummary,
       englishScores,
       setEnglishScore,
       syncStatus,
@@ -274,6 +287,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
       records,
       setRecord,
       setLiberalSummary,
+      liberalSummary,
       englishScores,
       setEnglishScore,
       syncStatus,

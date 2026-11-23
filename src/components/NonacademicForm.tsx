@@ -1,4 +1,4 @@
-import { FILL_GUIDES } from '@/content/fillGuides'
+import { fillGuideFor } from '@/content/fillGuides'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type {
@@ -23,7 +23,7 @@ import {
   startupCourses,
   substitutionFor,
 } from '@/content/substitutions'
-import { useStudent } from '@/state/useStudent'
+import { useProfile, useStudent } from '@/state/useStudent'
 import { PRACTICAL_ENGLISH_ID, isEnglishScoreRequirement } from '@/content/englishTests'
 import { reasonText } from '@/constants/labels'
 import styles from './NonacademicForm.module.css'
@@ -241,6 +241,8 @@ function NumericRow({
   onSave: (amount: number | null) => void
   autoNote?: string
 }) {
+  const profile = useProfile()
+  const guideLink = fillGuideFor(req.id, profile.major)?.link
   const saved = record ? String(record.amount) : ''
   const [value, setValue] = useState(saved)
   const dirty = value !== saved
@@ -257,9 +259,9 @@ function NumericRow({
     <form className={styles.row} onSubmit={handleSubmit}>
       <RowInfo req={req} status={status} />
       {autoNote && <span className={styles.hint}>{autoNote}</span>}
-      {FILL_GUIDES[req.id]?.link && (
-        <a className={styles.guideLink} href={FILL_GUIDES[req.id].link!.url} target="_blank" rel="noreferrer">
-          {FILL_GUIDES[req.id].link!.label} ↗
+      {guideLink && (
+        <a className={styles.guideLink} href={guideLink.url} target="_blank" rel="noreferrer">
+          {guideLink.label} ↗
         </a>
       )}
       <div className={styles.inputWrap}>

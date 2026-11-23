@@ -1,4 +1,12 @@
-import type { Course, CreditEntry, EvaluationResponse, GraduationRule, Source } from '@/api'
+import type {
+  ClassificationChange,
+  Course,
+  CreditEntry,
+  EvaluationResponse,
+  GraduationRule,
+  MajorCode,
+  Source,
+} from '@/api'
 import { formatCredits } from '@/components/ui/helpers'
 import { classifyCategory } from './courseCategory'
 import { entriesForArea } from './requirementView'
@@ -22,8 +30,32 @@ export type HiddenCheck = {
   courses?: { code: string; name: string; credits: number; semester: string; category: string }[]
   steps?: { title: string; sub: string }[]
   sources: Source[]
-  action?: { label: string; to: string }
+  action?: { label: string; to?: string; href?: string }
 }
+
+/** 교과구분 변경 신청 정보 (백엔드 graduation_schedule.classification_change) */
+type ChangeInfo = { change: ClassificationChange; major: MajorCode }
+
+const codeOf = (info?: ChangeInfo) =>
+  info ? (info.change.major_department_codes[info.major] ?? info.change.department_code) : null
+
+/** 교과구분 변경 신청 3단계 — 신청학과 코드 · 서식은 백엔드 값 */
+function changeSteps(info: ChangeInfo | undefined, from: string) {
+  const code = codeOf(info)
+  return [
+    {
+      title: '교과구분 변경 신청서 작성',
+      sub: code ? `신청학과 코드 ${code} · ${from}` : `${from} · 신청학과 코드 확인 필요`,
+    },
+    { title: '학부 사무실 제출', sub: '성적표에 성적이 오른 뒤 졸업 전까지 상시 신청' },
+    { title: '성적표 반영 확인', sub: '반영되면 이수 내역에서 교과구분만 바꿔주세요' },
+  ]
+}
+
+const formAction = (info?: ChangeInfo) => (info ? { label: '신청서 서식 받기', href: info.change.form_url } : undefined)
+
+const changeSources = (info: ChangeInfo | undefined, fallback: Source[]) =>
+  info ? [...(info.change.major_sources[info.major] ?? []), ...info.change.sources] : fallback
 
 const entryCourse = (e: CreditEntry, credits = e.recognized_credits ?? 0) => ({
   code: e.course_code,
@@ -36,7 +68,7 @@ const entryCourse = (e: CreditEntry, credits = e.recognized_credits ?? 0) => ({
 const sum = (list: { credits: number }[]) => list.reduce((n, c) => n + c.credits, 0)
 
 /** 교과구분 오분류 — 학부 개설 과목이 일반선택 등으로 잡혀 전공에 안 들어간 경우 */
-function misclassified(rule: GraduationRule, e: EvaluationResponse): HiddenCheck {
+function misclassified(rule: GraduationRule, e: EvaluationResponse, info?: ChangeInfo): HiddenCheck {
   const { pending } = entriesForArea('major', e.credit_entries, rule.major_transcript_categories ?? [])
   const courses = pending.map((x) => entryCourse(x))
   const credits = sum(courses)
@@ -65,12 +97,9 @@ function misclassified(rule: GraduationRule, e: EvaluationResponse): HiddenCheck
       ...new Set(courses.map((c) => c.category)),
     ].join(' · ')}(으)로 잡혀 있어요. 전공으로 바꾸면 전공 학점에 들어가요. 총 이수 학점은 그대로예요.`,
     courses,
-    steps: [
-      { title: '교과구분 변경 신청서 작성', sub: '신청학과 코드 확인 필요' },
-      { title: '학부 사무실 제출', sub: '신청 기간 확인 필요' },
-      { title: '성적표 반영 확인', sub: '반영되면 이수 내역에서 교과구분만 바꿔주세요' },
-    ],
-    sources,
+    steps: changeSteps(info, '일반선택 → 전공'),
+    sources: changeSources(info, sources),
+    action: formAction(info),
   }
 }
 
@@ -82,8 +111,7 @@ function softwareSubstitute(rule: GraduationRule, e: EvaluationResponse, courses
   const taken = courses.filter((c) => c.status === 'completed' && codes.includes(c.course_code))
   const base = { id: 'software', title: '졸업자격인정제 소프트웨어 영역', sources: req?.sources ?? [] }
   if (!req || !result) return { ...base, found: false, tag: '', body: '이 학번 · 전공에는 해당하지 않아요.' }
-  if (result.status === 'satisfied')
-    return { ...base, found: false, tag: '', body: '이미 충족했어요.' }
+  if (result.status === 'satisfied') return { ...base, found: false, tag: '', body: '이미 충족했어요.' }
   if (!taken.length)
     return {
       ...base,
@@ -109,10 +137,13 @@ function softwareSubstitute(rule: GraduationRule, e: EvaluationResponse, courses
 }
 
 /** 필수과목이 다전공(복수 · 부전공 등) 교과구분으로 잡힌 경우 */
-function requiredAsMultiMajor(rule: GraduationRule, courses: Course[]): HiddenCheck {
+function requiredAsMultiMajor(rule: GraduationRule, courses: Course[], info?: ChangeInfo): HiddenCheck {
   const required = new Set(rule.course_requirements.flatMap((r) => r.courses.map((c) => c.course_code)))
   const hits = courses.filter(
-    (c) => c.status === 'completed' && required.has(c.course_code) && classifyCategory(c.transcript_category, c.course_code) === 'multi',
+    (c) =>
+      c.status === 'completed' &&
+      required.has(c.course_code) &&
+      classifyCategory(c.transcript_category, c.course_code) === 'multi',
   )
   const base = {
     id: 'required-multi',
@@ -133,11 +164,9 @@ function requiredAsMultiMajor(rule: GraduationRule, courses: Course[]): HiddenCh
       semester: c.semester,
       category: c.transcript_category,
     })),
-    steps: [
-      { title: '교과구분 변경 신청서 작성', sub: '다전공 → 전공' },
-      { title: '학부 사무실 제출', sub: '신청 기간 확인 필요' },
-      { title: '성적표 반영 확인', sub: '반영되면 이수 내역에서 교과구분만 바꿔주세요' },
-    ],
+    steps: changeSteps(info, '다전공 → 전공'),
+    sources: changeSources(info, base.sources),
+    action: formAction(info),
   }
 }
 
@@ -160,7 +189,9 @@ function overCaps(rule: GraduationRule, e: EvaluationResponse): HiddenCheck[] {
   if (!caps.length) return []
   return caps.map((cap, i) => {
     const hits = over.filter((x) =>
-      cap.code_prefix ? x.course_code.startsWith(cap.code_prefix) : !caps.some((c) => c.code_prefix && x.course_code.startsWith(c.code_prefix)),
+      cap.code_prefix
+        ? x.course_code.startsWith(cap.code_prefix)
+        : !caps.some((c) => c.code_prefix && x.course_code.startsWith(c.code_prefix)),
     )
     const base = { id: `over-cap-${i}`, title: `${capLabel(cap)} 초과`, sources }
     if (!hits.length)
@@ -196,11 +227,13 @@ export function hiddenCreditChecks(
   rule: GraduationRule,
   evaluation: EvaluationResponse,
   courses: Course[],
+  /** 교과구분 변경 신청 정보가 있으면 신청학과 코드 · 서식을 채운다 */
+  info?: ChangeInfo,
 ): HiddenCheck[] {
   return [
-    misclassified(rule, evaluation),
+    misclassified(rule, evaluation, info),
     softwareSubstitute(rule, evaluation, courses),
-    requiredAsMultiMajor(rule, courses),
+    requiredAsMultiMajor(rule, courses, info),
     ...overCaps(rule, evaluation),
   ]
 }

@@ -36,6 +36,9 @@ export function OnboardingPage() {
   const [multiMajor, setMultiMajor] = useState<MultiMajor>(profile?.multi_major ?? 'none')
   const [status, setStatus] = useState<StudentStatus>(profile?.student_status ?? 'new')
   const [gradDate, setGradDate] = useState<string>(profile?.expected_graduation_date ?? '')
+  const [semesters, setSemesters] = useState<string>(
+    profile?.registered_semesters != null ? String(profile.registered_semesters) : '',
+  )
   const [number, setNumber] = useState(studentNumber ?? '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -102,6 +105,7 @@ export function OnboardingPage() {
           multi_major: multiMajor,
           student_status: status,
           expected_graduation_date: gradDate || null,
+          registered_semesters: semesters ? Number(semesters) : null,
         },
         isAccount ? number : undefined,
       )
@@ -272,6 +276,18 @@ export function OnboardingPage() {
                       </option>,
                     ])}
                   </select>
+                </Field>
+
+                <Field label="지금까지 등록한 정규학기 (선택)">
+                  <select className={ui.select} value={semesters} onChange={(e) => setSemesters(e.target.value)}>
+                    <option value="">입력 안 함</option>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}학기
+                      </option>
+                    ))}
+                  </select>
+                  <p className={styles.abeekNote}>휴학 · 계절학기는 빼고 세어 주세요. 조기졸업 대상인지 판정할 때 써요.</p>
                 </Field>
 
                 {needsAbeek && (

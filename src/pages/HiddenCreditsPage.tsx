@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { CategoryBadge, ErrorState, Loading, PageIntro, Sources, formatCredits, ui } from '@/components/ui'
 import { hiddenCreditChecks, type HiddenCheck } from '@/state/hiddenCredits'
-import { useEvaluation, useRequirements } from '@/state/queries'
+import { useEvaluation, useGraduationSchedule, useRequirements } from '@/state/queries'
 import { useProfile, useStudent } from '@/state/useStudent'
 import styles from './HiddenCreditsPage.module.css'
 
@@ -11,7 +11,9 @@ export function HiddenCreditsPage() {
   const { courses, records } = useStudent()
   const rule = useRequirements(profile)
   const evaluation = useEvaluation(profile, courses, records)
-  const checks = rule.data && evaluation.data ? hiddenCreditChecks(rule.data, evaluation.data, courses) : null
+  const schedule = useGraduationSchedule(profile)
+  const change = schedule.data ? { change: schedule.data.classification_change, major: profile.major } : undefined
+  const checks = rule.data && evaluation.data ? hiddenCreditChecks(rule.data, evaluation.data, courses, change) : null
   const found = checks?.filter((c) => c.found) ?? []
   const info = checks?.filter((c) => c.info) ?? []
   const clear = checks?.filter((c) => !c.found && !c.info) ?? []
@@ -118,7 +120,12 @@ function FoundCard({ check }: { check: HiddenCheck }) {
 
       <div className={styles.foot}>
         <Sources sources={check.sources} />
-        {check.action && (
+        {check.action?.href && (
+          <a href={check.action.href} className={ui.button} target="_blank" rel="noreferrer">
+            {check.action.label} ↓
+          </a>
+        )}
+        {check.action?.to && (
           <Link to={check.action.to} className={ui.buttonGhost}>
             {check.action.label}
           </Link>

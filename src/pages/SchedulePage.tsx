@@ -2,6 +2,8 @@ import type {
   Course,
   EvaluationResponse,
   GraduationRule,
+  EarlyGraduationAssessment,
+  GraduationDeferral,
   GraduationSchedule,
   RequirementResult,
   Source,
@@ -51,6 +53,41 @@ const QUALIFICATION_IDS = ['practical-english', 'software', 'counseling']
 const pendingOf = (e: EvaluationResponse, ids: string[]) =>
   e.requirements.filter((r) => ids.includes(r.id) && r.status !== 'satisfied')
 
+type EventKind = GraduationSchedule['events'][number]['kind']
+
+const EVENT_TITLE: Record<EventKind, string> = {
+  portfolio_submission: '졸업 포트폴리오 제출',
+  graduation_interview: '졸업 인터뷰',
+  classification_change: '교과구분 변경 신청',
+  general_elective_conversion: '일반선택 전환 신청',
+  graduation_review_result: '졸업사정 결과 발표',
+}
+
+/** 일정 ↔ 졸업요건 (이미 채운 요건의 일정은 숨긴다) */
+const EVENT_REQUIREMENT: Partial<Record<EventKind, string>> = {
+  portfolio_submission: 'review-portfolio',
+  graduation_interview: 'review-interview',
+}
+const REQUIREMENT_EVENT: Record<string, EventKind> = {
+  'review-portfolio': 'portfolio_submission',
+  'review-interview': 'graduation_interview',
+}
+
+function eventWhen(ev: GraduationSchedule['events'][number]) {
+  const range =
+    ev.start_date && ev.end_date
+      ? `${formatDate(ev.start_date)} ~ ${formatDate(ev.end_date)}`
+      : ev.end_date
+        ? `${formatDate(ev.end_date)}까지`
+        : ev.start_date
+          ? `${formatDate(ev.start_date)}부터`
+          : ''
+  if (ev.status === 'confirmed') return range || '일정 확정'
+  if (ev.status === 'tentative') return range ? `${range} (예정)` : '날짜 미정 (예정)'
+  if (ev.status === 'standing_rule') return '상시 신청'
+  return '일정 확인 필요'
+}
+
 function buildSteps(
   profile: StudentProfile,
   rule: GraduationRule,
@@ -77,8 +114,38 @@ function buildSteps(
     sources: qualification?.sources ?? req('practical-english')?.sources ?? [],
   })
 
-  // 졸업심사 (포트폴리오 · 면담)
-  for (const r of e.requirements.filter((x) => x.id.startsWith('review-') && x.status !== 'satisfied')) {
+  // 학부 일정 (백엔드 graduation_schedule.events — 내 졸업 시기 · 전공 · 학번에 맞는 것만 온다)
+  const hidden = hiddenCreditChecks(rule, e, courses).filter((c) => c.found && c.steps)
+  const covered = new Set<string>()
+  for (const ev of schedule.events) {
+    covered.add(ev.kind)
+    const reqId = EVENT_REQUIREMENT[ev.kind]
+    const result = reqId ? e.requirements.find((r) => r.id === reqId) : undefined
+    // 이미 채운 졸업심사 항목은 일정에서 뺀다
+    if (result?.status === 'satisfied') continue
+    // 교과구분 변경 · 일반선택 전환은 숨은 학점을 찾았을 때만
+    const related = hidden.filter((h) => (ev.kind === 'general_elective_conversion') === h.id.startsWith('over-cap'))
+    if ((ev.kind === 'classification_change' || ev.kind === 'general_elective_conversion') && !related.length) continue
+    const date = ev.end_date ?? ev.start_date ?? undefined
+    steps.push({
+      key: `event-${ev.kind}`,
+      title: EVENT_TITLE[ev.kind],
+      date: ev.status === 'confirmed' ? date : undefined,
+      when: eventWhen(ev),
+      body:
+        ev.kind === 'classification_change' || ev.kind === 'general_elective_conversion'
+          ? `숨은 학점(${related.map((h) => h.tag).join(', ')})을 반영하려면 졸업사정 전에 승인돼야 해요.${ev.note ? ` ${ev.note}` : ''}`
+          : ev.kind === 'graduation_review_result'
+            ? `최종 판정은 학부 사무실에서 해요.${ev.note ? ` ${ev.note}` : ''}`
+            : (ev.note ?? '학부 공지에 맞춰 제출해요. 마치면 졸업요건에서 확인 완료로 표시해주세요.'),
+      sources: ev.sources,
+    })
+  }
+
+  // 일정이 안 온 졸업심사 항목 (예: 플솝 TOPCIT)은 요건으로 보여준다
+  for (const r of e.requirements.filter(
+    (x) => x.id.startsWith('review-') && x.status !== 'satisfied' && !covered.has(REQUIREMENT_EVENT[x.id] ?? ''),
+  )) {
     const details = req(r.id)?.details ?? []
     steps.push({
       key: r.id,
@@ -88,18 +155,6 @@ function buildSteps(
         ? details.join(' · ')
         : '학부 공지에 맞춰 제출해요. 마치면 졸업요건에서 확인 완료로 표시해주세요.',
       sources: r.sources,
-    })
-  }
-
-  // 숨은 학점 신청
-  const hidden = hiddenCreditChecks(rule, e, courses).filter((c) => c.found && c.steps)
-  for (const h of hidden) {
-    steps.push({
-      key: `hidden-${h.id}`,
-      title: h.id.startsWith('over-cap') ? '일반선택 전환 신청' : '교과구분 변경 신청',
-      when: '신청 기간 확인 필요',
-      body: `숨은 학점(${h.tag})을 반영하려면 졸업사정 전에 승인돼야 해요.`,
-      sources: h.sources,
     })
   }
 
@@ -120,13 +175,14 @@ function buildSteps(
     sources: schedule.department_deadline.sources,
   })
 
-  steps.push({
-    key: 'result',
-    title: '졸업사정 결과 발표',
-    when: '일정 확인 필요',
-    body: '최종 판정은 학부 사무실에서 해요.',
-    sources: [],
-  })
+  if (!covered.has('graduation_review_result'))
+    steps.push({
+      key: 'result',
+      title: '졸업사정 결과 발표',
+      when: '일정 확인 필요',
+      body: '최종 판정은 학부 사무실에서 해요.',
+      sources: [],
+    })
 
   // 날짜 있는 것부터 가까운 순
   return steps.sort(
@@ -171,7 +227,7 @@ export function SchedulePage() {
   const rule = useRequirements(profile)
   const evaluation = useEvaluation(profile, courses, records)
   const grad = formatGraduation(profile.expected_graduation_date)
-  const schedule = useGraduationSchedule()
+  const schedule = useGraduationSchedule(profile)
   const steps =
     rule.data && evaluation.data && schedule.data
       ? buildSteps(profile, rule.data, evaluation.data, courses, schedule.data)
@@ -222,9 +278,8 @@ export function SchedulePage() {
                 />
                 <OptionalCard
                   policy={schedule.data!.early_graduation}
-                  profile={profile}
-                  courses={courses}
-                  gpa={evaluation.data!.requirements.find((r) => r.id === 'gpa')}
+                  assessment={evaluation.data!.early_graduation}
+                  deferral={schedule.data!.deferral}
                 />
               </aside>
             </div>
@@ -303,28 +358,45 @@ function EnglishWarning({
   )
 }
 
+const EARLY_STATUS: Record<EarlyGraduationAssessment['status'], string> = {
+  criteria_met: '조건 충족 · 종강 전 학과 상담 후 신청',
+  criteria_not_met: '대상 아님',
+  verification_required: '확인 필요',
+  not_applicable: '대상 아님 · 편입생은 조기졸업 불가',
+}
+
 function OptionalCard({
   policy,
-  profile,
-  courses,
-  gpa,
+  assessment,
+  deferral,
 }: {
   policy: GraduationSchedule['early_graduation']
-  profile: StudentProfile
-  courses: Course[]
-  gpa: RequirementResult | undefined
+  /** 백엔드 판정 (평점 · 등록 학기 · 졸업요건 충족 여부) */
+  assessment: EarlyGraduationAssessment | null | undefined
+  deferral: GraduationDeferral
 }) {
-  const semesters = new Set(courses.filter((c) => /^\d{4}-[12]$/.test(c.semester)).map((c) => c.semester)).size
-  const transfer =
-    profile.transfer_student ||
-    profile.student_status === 'general_transfer' ||
-    profile.student_status === 'bachelor_transfer'
-  const gpaValue = gpa && gpa.current > 0 ? gpa.current : null
-  let early: string
-  if (transfer && policy.not_for_transfer) early = '대상 아님 · 편입생은 조기졸업 불가'
-  else if (gpaValue == null) early = '평점을 계산하면 알려드려요'
-  else if (gpaValue < policy.min_gpa) early = `대상 아님 · 평점 ${gpaValue.toFixed(2)} (${policy.min_gpa} 이상 필요)`
-  else early = `평점 ${gpaValue.toFixed(2)} 기준 충족 · 등록 ${policy.min_semesters}학기 이상인지 확인`
+  // 조기졸업 — 백엔드 판정 결과를 이유와 함께
+  let early = '판정 정보가 없어요'
+  let earlyWhy = ''
+  if (assessment) {
+    early = EARLY_STATUS[assessment.status]
+    const why: string[] = []
+    if (assessment.registered_semesters == null) why.push('등록 학기 수를 학적 변경에서 넣으면 판정해요')
+    else if (assessment.registered_semesters < policy.min_semesters)
+      why.push(`등록 ${assessment.registered_semesters}학기 (${policy.min_semesters}학기 이상 필요)`)
+    if (assessment.gpa == null) why.push('평점을 계산하려면 성적이 필요해요')
+    else if (assessment.gpa < policy.min_gpa)
+      why.push(`평점 ${assessment.gpa.toFixed(2)} (${policy.min_gpa} 이상 필요)`)
+    if (assessment.status !== 'not_applicable' && !assessment.graduation_requirements_met)
+      why.push('졸업요건을 아직 다 채우지 못했어요')
+    earlyWhy = why.join(' · ')
+  }
+  const fees = deferral.tuition_by_credits
+    .map(
+      (t) =>
+        `${t.min_credits}${t.max_credits ? `~${t.max_credits}` : ''}학점 ${t.tuition_fraction === '1' ? '전액' : t.tuition_fraction}`,
+    )
+    .join(', ')
 
   return (
     <section className={ui.card}>
@@ -333,18 +405,22 @@ function OptionalCard({
         <div>
           <b>조기졸업</b>
           <span>{early}</span>
-          <p>
-            {policy.rule}
-            {semesters ? ` · 지금까지 성적이 있는 정규학기 ${semesters}개` : ''}
-          </p>
+          {earlyWhy && <p>{earlyWhy}</p>}
+          <p>{policy.rule}</p>
+          <Sources sources={policy.sources} />
         </div>
         <div>
           <b>학사학위취득 유예</b>
-          <span>공고 일정 확인 필요 · 통합정보시스템 신청</span>
-          <p>요건을 다 채우고도 졸업을 미루고 싶을 때 신청해요. 횟수 · 비용 조건은 학사 공지를 확인하세요.</p>
+          <span>
+            최대 {deferral.max_semesters}학기 · {deferral.min_completed_semesters}학기 이상 이수 후
+          </span>
+          <p>
+            시설사용료 등록금의 {deferral.facility_fee_percent}%. 수강하면 학점별 등록금({fees})에서 시설사용료를 뺀
+            차액을 내요. {deferral.note}
+          </p>
+          <Sources sources={deferral.sources} />
         </div>
       </div>
-      <Sources sources={policy.sources} />
     </section>
   )
 }

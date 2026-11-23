@@ -5,6 +5,7 @@ import {
   PRACTICAL_METHODS,
   isEnglishScoreRequirement,
   scoreValidity,
+  toEnglishTestResult,
   toeicEquivalent,
   type EnglishScore,
 } from '@/content/englishTests'
@@ -36,20 +37,27 @@ export function useEnglish(rule: GraduationRule | undefined, profile: StudentPro
     setEnglishScore(OFFICIAL_ENGLISH_KEY, next)
     for (const r of scoreReqs) if (englishScores[r.id]) setEnglishScore(r.id, null)
     const { equivalent } = evaluate(next ?? undefined)
-    for (const r of scoreReqs) setRecord(r.id, next ? equivalent : null)
+    // 판정용 환산 점수와 함께 시험 원본(시험 · 점수 · 응시월)도 서버에 저장
+    const test = toEnglishTestResult(next)
+    for (const r of scoreReqs) setRecord(r.id, next ? equivalent : null, test)
 
     if (!practical) return
     const meets700 = !!next && equivalent >= 700
     // 방법을 아직 안 골랐는데 성적이 기준 이상이면 공인영어시험으로 채운다
     if (!practicalMethod && meets700) setCheckMethod(PRACTICAL_ENGLISH_ID, 'official')
     if (practicalMethod === 'official' || (!practicalMethod && meets700))
-      setRecord(PRACTICAL_ENGLISH_ID, meets700 ? (practical.minimum ?? 1) : null)
+      setRecord(PRACTICAL_ENGLISH_ID, meets700 ? (practical.minimum ?? 1) : null, test)
   }
 
   function choosePracticalMethod(method: string | null) {
     if (!practical) return
     setCheckMethod(PRACTICAL_ENGLISH_ID, method)
-    if (method === 'official') setRecord(PRACTICAL_ENGLISH_ID, current.equivalent >= 700 ? (practical.minimum ?? 1) : null)
+    if (method === 'official')
+      setRecord(
+        PRACTICAL_ENGLISH_ID,
+        current.equivalent >= 700 ? (practical.minimum ?? 1) : null,
+        toEnglishTestResult(score),
+      )
     else setRecord(PRACTICAL_ENGLISH_ID, null)
   }
 

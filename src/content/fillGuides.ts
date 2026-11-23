@@ -1,3 +1,5 @@
+import type { MajorCode } from '@/api/types'
+
 /**
  * 요건별 채우는 방법 안내 (학부 공지 기준).
  * - options: 졸업요건 상세 오른쪽 '채우는 방법' 카드
@@ -26,6 +28,8 @@ export type GuideSection = {
 }
 
 export type FillGuide = {
+  /** 이 전공에만 보여준다 (없으면 모든 전공) */
+  majors?: MajorCode[]
   options: FillOption[]
   link?: { label: string; url: string }
   guide?: {
@@ -201,4 +205,59 @@ export const FILL_GUIDES: Record<string, FillGuide> = {
       ],
     },
   },
+
+  // 글솝 졸업인터뷰 · TOPCIT (학부 공지 2023-11-02, 2023.11.1.~ 시행). 백엔드가 학번별로 요건을 나눠 준다.
+  'review-interview': {
+    majors: ['glsop'],
+    options: [
+      { title: '졸업인터뷰(심층면접) 응시', sub: '~2023학번 필수 · 졸업 학기 학부 일정에 맞춰 응시' },
+      { title: 'TOPCIT 성적표 제출로 면제', sub: 'TOPCIT에 응시해 성적표를 내면 인터뷰가 면제돼요' },
+    ],
+    guide: {
+      title: '졸업인터뷰 · TOPCIT 안내 (~2023학번)',
+      intro: [
+        '졸업예정자는 경북대 졸업자격인정원의 전공영역을 졸업포트폴리오와 졸업인터뷰(심층면접, Exit interview)로 평가받아요. (2023.11.1.부터 시행)',
+      ],
+      sections: [
+        {
+          title: '졸업인터뷰 — 필수',
+          body: ['2023학번까지는 졸업인터뷰가 필수예요.'],
+        },
+        {
+          title: 'TOPCIT — 선택 (내면 인터뷰 면제)',
+          body: ['TOPCIT에 응시해 성적표를 제출하면 졸업인터뷰가 면제돼요.'],
+          evidence: 'TOPCIT 성적표 (졸업포트폴리오에 수록)',
+          notes: ['TOPCIT 성적표 기준: 글솝 입학 이후 취득한, 졸업 시점 기준 가장 최근 성적표 (성적 제한 기준 없음)'],
+        },
+      ],
+    },
+  },
+  'review-topcit': {
+    majors: ['glsop'],
+    options: [{ title: 'TOPCIT 응시 (필수)', sub: '2024학번부터 필수 · 졸업인터뷰는 없어요' }],
+    guide: {
+      title: 'TOPCIT 안내 (2024학번부터)',
+      intro: [
+        '졸업예정자는 경북대 졸업자격인정원의 전공영역을 졸업포트폴리오와 TOPCIT으로 평가받아요. 2024학번부터 졸업인터뷰 대신 TOPCIT 응시가 필수예요.',
+      ],
+      sections: [
+        {
+          title: 'TOPCIT 응시 — 필수',
+          body: ['TOPCIT에 응시하고 성적표를 졸업포트폴리오에 수록해 제출해요.'],
+          evidence: 'TOPCIT 성적표 (졸업포트폴리오에 수록)',
+          notes: ['TOPCIT 성적표 기준: 글솝 입학 이후 취득한, 졸업 시점 기준 가장 최근 성적표 (성적 제한 기준 없음)'],
+        },
+      ],
+    },
+  },
+  'review-portfolio': {
+    majors: ['glsop'],
+    options: [{ title: '졸업포트폴리오 제출', sub: '전공영역 평가 자료 · TOPCIT에 응시했다면 성적표를 함께 수록' }],
+  },
+}
+
+/** 이 요건 · 전공의 채우는 방법 (전공이 안 맞으면 없음) */
+export function fillGuideFor(id: string, major: MajorCode): FillGuide | undefined {
+  const guide = FILL_GUIDES[id]
+  return guide && (!guide.majors || guide.majors.includes(major)) ? guide : undefined
 }

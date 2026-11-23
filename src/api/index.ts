@@ -10,6 +10,8 @@ import type {
   EvaluationResponse,
   GraduationRule,
   GraduationSchedule,
+  RecommendationRequest,
+  Recommendations,
   MajorCode,
   MajorsResponse,
   MeResponse,
@@ -29,8 +31,15 @@ const V1 = '/api/v1'
 // ── 요건 조회 (로그인 불필요) ───────────────────────────
 
 /** 졸업자격인정원 마감 · 학부 요건 마감 · 조기졸업 기준 */
-export function getGraduationSchedule(opts?: Opts) {
-  return request<GraduationSchedule>(`${V1}/graduation/schedule`, opts)
+export function getGraduationSchedule(
+  params: { graduation?: string | null; major?: MajorCode; admission_year?: number } = {},
+  opts?: Opts,
+) {
+  const query: Record<string, string | number> = {}
+  if (params.graduation) query.graduation = params.graduation
+  if (params.major) query.major = params.major
+  if (params.admission_year) query.admission_year = params.admission_year
+  return request<GraduationSchedule>(`${V1}/graduation/schedule`, { query, ...opts })
 }
 
 /** 입학년도에 선택 가능한 세부전공 */
@@ -59,8 +68,15 @@ export function previewEvaluation(body: EvaluationRequest, opts?: Opts) {
 // ── 계정 ───────────────────────────────────────────────
 
 /** 학교 이메일로 가입 인증번호 6자리를 보낸다 */
-export function sendEmailCode(email: string) {
-  return request<void>(`${V1}/auth/email-code`, { method: 'POST', body: { email } })
+export function sendEmailCode(email: string, purpose: 'register' | 'reset' = 'register') {
+  return request<void>(`${V1}/auth/email-code`, { method: 'POST', body: { email, purpose } })
+}
+
+/** 재설정 인증번호가 맞으면 새 비밀번호로 바꾸고 바로 로그인한다 */
+export async function resetPassword(reset: { email: string; code: string; password: string }) {
+  const session = await request<SessionResponse>(`${V1}/auth/password-reset`, { method: 'POST', body: reset })
+  tokenStore.set(session.access_token)
+  return session
 }
 
 export function register(registration: Registration) {
@@ -98,7 +114,15 @@ export function getMyRequirements(opts?: Opts) {
 
 /** 교육과정 과목 검색 (코드 또는 과목명) — 로그인 불필요 */
 export function searchCourses(
-  params: { admission_year: number; major: MajorCode; q?: string; limit?: number; offset?: number },
+  params: {
+    admission_year: number
+    major: MajorCode
+    q?: string
+    limit?: number
+    offset?: number
+    /** 플솝 ABEEK 이수면 선수과목 정보를 같이 준다 */
+    abeek?: boolean
+  },
   opts?: Opts,
 ) {
   return request<CourseSearchResponse>(`${V1}/courses`, { query: params, ...opts })
@@ -110,6 +134,11 @@ export function getMyRecords(opts?: Opts) {
 }
 
 /** 이수 과목 · 비교과 기록 전체를 교체 저장 */
+/** 서버에 저장된 이수 기록으로 과목 추천 (진로 · AI 순서 선택) */
+export function getMyRecommendations(body: RecommendationRequest, opts?: Opts) {
+  return request<Recommendations>(`${V1}/me/recommendations`, { method: 'POST', body, auth: true, ...opts })
+}
+
 export function saveMyRecords(records: StudentRecords) {
   return request<StudentRecords>(`${V1}/me/records`, { method: 'PUT', body: records, auth: true })
 }

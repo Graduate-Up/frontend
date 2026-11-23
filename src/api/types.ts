@@ -172,6 +172,8 @@ export type StudentProfile = {
   student_status?: StudentStatus | null
   international_student?: boolean
   disabled_student?: boolean
+  /** 정규학기 등록 횟수 (조기졸업 판정용) */
+  registered_semesters?: number | null
 }
 
 /** 로그인 사용자가 저장하는 프로필 (StudentProfile + 학번) */
@@ -198,16 +200,28 @@ export type Course = {
   status: CourseStatus
 }
 
+/** 영어 시험 원본 (학부 영어 · 실용영어 기록에만) */
+export type EnglishTestResult = {
+  test_type: string
+  /** 점수 또는 OPIc 등급 (예: 750, 'IM2') */
+  raw_score: number | string
+  /** 응시 연월 YYYY-MM */
+  taken_month: string
+}
+
 export type NonacademicRecord = {
   requirement_id: string
   amount: number
   status: JudgementStatus
+  english_test?: EnglishTestResult | null
 }
 
 export type EvaluationRequest = {
   student_profile: StudentProfile
   completed_courses: Course[]
   nonacademic_records?: NonacademicRecord[]
+  /** 성적표의 첨성인 교양 영역별 이수학점 (있으면 교양 영역 요건을 이 숫자로 판정) */
+  liberal_summary?: LiberalSummary | null
 }
 
 export type RequiredCourseResult = {
@@ -244,6 +258,7 @@ export type CreditEntry = {
   reason?: string | null
   /** 교과구분 변경을 신청하면 전공으로 인정될 수 있는 과목 */
   major_approval_required?: boolean
+  offered_by_computer_science?: boolean | null
   /** 교육과정표 · 수강 학기 교양 영역 기준 구분 (예: 공학전공, 첨성인기초(글쓰기), 첨성인핵심(인문·사회), SDG, 창업교과목) */
   course_areas?: string[]
 }
@@ -259,6 +274,25 @@ export type EvaluationResponse = {
   requirement_counts: RequirementCounts
   requirements: RequirementResult[]
   credit_entries: CreditEntry[]
+  /** 자동 판정에서 뺀 규칙 해석 확인 항목 (학부 확인 메모) */
+  notices?: { id: string; name: string; sources: Source[] }[]
+  early_graduation?: EarlyGraduationAssessment | null
+}
+
+export type EarlyGraduationPolicy = {
+  min_semesters: number
+  min_gpa: number
+  rule: string
+  not_for_transfer: boolean
+  sources: Source[]
+}
+
+export type EarlyGraduationAssessment = {
+  status: 'criteria_met' | 'criteria_not_met' | 'verification_required' | 'not_applicable'
+  registered_semesters: number | null
+  gpa: number | null
+  graduation_requirements_met: boolean
+  policy: EarlyGraduationPolicy
 }
 
 export type RequirementCounts = {
@@ -291,6 +325,13 @@ export type CatalogCourse = {
   recommended_year?: string | null
   recommended_semester?: string | null
   note?: string | null
+  /** 컴퓨터학부 개설 여부 (백엔드 판단, 모르면 null) */
+  offered_by_computer_science?: boolean | null
+  career_tags?: CareerTag[]
+  /** 선수과목 — 그룹마다 하나 이상 이수 (예: [['COMP0204', 'COMP0206']]) */
+  prerequisite_groups?: string[][] | null
+  prerequisite_kind?: 'required' | 'recommended' | null
+  prerequisite_sources?: Source[]
 }
 
 export type CourseSearchResponse = {
@@ -299,6 +340,7 @@ export type CourseSearchResponse = {
   basis: string
   /** 내 학번 교육과정표가 아니라 추정한 표인지 */
   inferred: boolean
+  curriculum_source?: Source
   total: number
   items: CatalogCourse[]
 }
@@ -357,14 +399,100 @@ export type QualificationDeadline = {
   sources: Source[]
 }
 
+export type GraduationEvent = {
+  kind:
+    | 'portfolio_submission'
+    | 'graduation_interview'
+    | 'classification_change'
+    | 'general_elective_conversion'
+    | 'graduation_review_result'
+  graduation: string
+  major?: MajorCode | null
+  admission_from?: number | null
+  admission_to?: number | null
+  start_date?: string | null
+  end_date?: string | null
+  /** confirmed: 날짜 확정, tentative: 예정, standing_rule: 상시, unverified: 미확인 */
+  status: 'confirmed' | 'tentative' | 'standing_rule' | 'unverified'
+  note?: string | null
+  sources: Source[]
+}
+
+export type ClassificationChange = {
+  /** 학부 온라인 신청 안내의 컴퓨터학부 코드 */
+  department_code: string
+  major_department_codes: Partial<Record<MajorCode, string>>
+  major_sources: Partial<Record<MajorCode, Source[]>>
+  form_url: string
+  form_name: string
+  sources: Source[]
+}
+
+export type GraduationDeferral = {
+  max_semesters: number
+  min_completed_semesters: number
+  facility_fee_percent: number
+  tuition_by_credits: { min_credits: number; max_credits: number | null; tuition_fraction: string }[]
+  note: string
+  sources: Source[]
+}
+
 export type GraduationSchedule = {
   qualification_deadlines: QualificationDeadline[]
   department_deadline: { label: string; sources: Source[] }
-  early_graduation: {
-    min_semesters: number
-    min_gpa: number
-    rule: string
-    not_for_transfer: boolean
-    sources: Source[]
-  }
+  early_graduation: EarlyGraduationPolicy
+  events: GraduationEvent[]
+  classification_change: ClassificationChange
+  deferral: GraduationDeferral
+}
+
+// ── 과목 추천 (POST /me/recommendations) ───────────────
+
+export type CareerTag = 'ai_data' | 'backend' | 'security' | 'graduate_study'
+
+export type RequirementGain = { requirement_id: string; name: string; amount: number }
+
+export type CourseRecommendation = {
+  course_code: string
+  course_name: string
+  credits: number
+  curriculum_category: string
+  recommended_year?: string | null
+  recommended_semester?: string | null
+  /** 이 과목을 들으면 줄어드는 부족분 */
+  gains: RequirementGain[]
+  career_tags: CareerTag[]
+  reason: string
+  /** 이 과목이 들어 있는 융합전공 · 복수전공 id */
+  program_ids: string[]
+}
+
+export type ProgramRecommendation = {
+  id: string
+  name: string
+  kind: 'convergence' | 'double_major'
+  /** 이미 들은 과목 중 이 전공 과목 */
+  overlapping_course_codes: string[]
+  /** 진로 · 관심 분야와 이어지는 과목 */
+  related_course_codes: string[]
+  source: Source
+}
+
+export type Recommendations = {
+  curriculum_source: Source
+  inferred: boolean
+  missing_course_requirements: RequirementGain[]
+  recommended: CourseRecommendation[]
+  alternatives: CourseRecommendation[]
+  programs: ProgramRecommendation[]
+  program_data_available: boolean
+  /** rules: 규칙으로 정렬, openai: AI가 진로에 맞춰 순서 조정 */
+  ranking: 'rules' | 'openai'
+}
+
+export type RecommendationRequest = {
+  career?: CareerTag | null
+  use_ai?: boolean
+  /** 들을 학기 YYYY-1|2 */
+  target_semester?: string | null
 }
