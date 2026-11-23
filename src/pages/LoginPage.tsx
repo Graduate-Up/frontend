@@ -19,8 +19,14 @@ const DOMAIN_ERROR = '경북대학교 이메일로만 로그인할 수 있어요
 /** 백엔드 학교 이메일 규칙 (영문·숫자로 시작, 앞부분 64자까지) */
 const EMAIL_RE = /^[a-z0-9][a-z0-9_+.-]{0,63}@knu\.ac\.kr$/
 
+/** 아이디만 쳤으면 @knu.ac.kr을 붙인다 (전체 주소를 붙여넣어도 된다) */
+function fullEmail(input: string) {
+  const value = input.trim().toLowerCase()
+  return !value || value.includes('@') ? value : value + KNU_DOMAIN
+}
+
 function checkEmail(email: string): { email: string } | { error: string } {
-  const value = email.trim().toLowerCase()
+  const value = fullEmail(email)
   if (!value.endsWith(KNU_DOMAIN)) return { error: DOMAIN_ERROR }
   if (!EMAIL_RE.test(value)) return { error: '이메일 주소 형식을 확인해주세요.' }
   return { email: value }
@@ -159,18 +165,29 @@ export function LoginPage() {
             <label className={styles.field}>
               <span>이메일</span>
               <div className={styles.inline}>
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="username"
-                  placeholder={`학번 또는 아이디${KNU_DOMAIN}`}
-                  required
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    if (error) setError(null)
-                  }}
-                />
+                <div className={styles.emailBox}>
+                  <input
+                    name="email"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="학번 또는 아이디"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (error) setError(null)
+                    }}
+                    onBlur={() => {
+                      // 비밀번호 관리자 · 붙여넣기로 '@knu.ac.kr'까지 들어오면 아이디만 남긴다
+                      if (email.trim().toLowerCase().endsWith(KNU_DOMAIN))
+                        setEmail(email.trim().slice(0, -KNU_DOMAIN.length))
+                    }}
+                  />
+                  {!email.includes('@') && <span className={styles.domain}>{KNU_DOMAIN}</span>}
+                </div>
                 {!isLogin && (
                   <button type="button" className={styles.codeButton} disabled={sending} onClick={handleSendCode}>
                     {sending ? '보내는 중…' : codeSentTo ? '다시 받기' : '인증번호 받기'}

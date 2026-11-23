@@ -246,7 +246,7 @@ export function CoursesPage() {
 
   return (
     <>
-      <PageHeader crumbs={[{ label: '이수 내역' }, { label: isNonacademic ? '비교과' : '과목' }]} />
+      <PageHeader crumbs={[{ label: '이수 내역' }, { label: isNonacademic ? '비교과' : '교과' }]} />
       <div className={ui.page}>
         <div className={styles.tabs} role="tablist">
           <button
@@ -256,7 +256,7 @@ export function CoursesPage() {
             className={styles.tab}
             onClick={() => setParams({}, { replace: true })}
           >
-            과목 <b>{courses.length}</b>
+            교과 <b>{courses.length}</b>
           </button>
           <button
             type="button"

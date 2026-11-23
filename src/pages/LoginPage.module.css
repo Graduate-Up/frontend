@@ -246,3 +246,40 @@
   font-size: 13px;
   color: var(--color-teal-dark);
 }
+
+/* 아이디 입력 + 고정 도메인 (@knu.ac.kr 자동완성) */
+.emailBox {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 46px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.emailBox:focus-within {
+  outline: 2px solid var(--color-navy);
+  outline-offset: -1px;
+}
+
+.field .emailBox input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.field .emailBox input:focus {
+  outline: none;
+}
+
+.domain {
+  padding-right: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
