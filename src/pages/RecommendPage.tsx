@@ -21,6 +21,21 @@ function loadCareer(): Career {
   return 'any'
 }
 
+/** 앞으로 들을 정규학기 4개 (지금이 9~2월이면 다음 해 1학기부터, 3~8월이면 그해 2학기부터) */
+function upcomingSemesters(now = new Date()) {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  let year = m >= 9 ? y + 1 : y
+  let term = m >= 3 && m <= 8 ? 2 : 1
+  const out: string[] = []
+  for (let i = 0; i < 4; i++) {
+    out.push(`${year}-${term}`)
+    if (term === 2) year += 1
+    term = term === 1 ? 2 : 1
+  }
+  return out
+}
+
 const CAREER_LABEL = Object.fromEntries(CAREERS.map((c) => [c.id, c.label])) as Record<Career, string>
 
 /** 화면에 그릴 추천 결과 (로그인: 백엔드 추천, 둘러보기: 프론트 계산) */
@@ -32,6 +47,8 @@ type View = {
   programNames: Record<string, string>
   ai: boolean
   basis: string
+  /** 교육과정 출처 링크 */
+  basisUrl?: string | null
   inferred: boolean
 }
 
@@ -58,6 +75,9 @@ export function RecommendPage() {
   const myProgram = convergenceProgram
   const [career, setCareer] = useState<Career>(loadCareer)
   const [showAll, setShowAll] = useState(false)
+  // 들을 학기 — 보내면 백엔드가 그 학기 교양 영역까지 반영해 효과를 계산한다
+  const semesterOptions = upcomingSemesters()
+  const [targetSemester, setTargetSemester] = useState<string>(semesterOptions[0])
   const isAccount = kind === 'account'
 
   // 둘러보기: 프론트 계산
@@ -68,10 +88,11 @@ export function RecommendPage() {
   // 로그인: 서버에 저장된 이수 기록으로 백엔드 추천 (저장 중이면 끝난 뒤에)
   const careerTag: CareerTag | null = career === 'any' ? null : career
   const server = useAsync(
-    `recs:${careerTag}:${JSON.stringify(courses)}:${JSON.stringify(records)}`,
+    `recs:${careerTag}:${targetSemester}:${JSON.stringify(courses)}:${JSON.stringify(records)}`,
     isAccount && syncStatus !== 'saving'
       ? // 항상 AI 정렬을 요청한다 (백엔드는 진로를 골랐을 때만 AI로 순서를 정한다)
-        (signal) => getMyRecommendations({ career: careerTag, use_ai: true }, { signal })
+        (signal) =>
+          getMyRecommendations({ career: careerTag, use_ai: true, target_semester: targetSemester || null }, { signal })
       : null,
   )
 
@@ -98,6 +119,7 @@ export function RecommendPage() {
         : d.programs,
       programNames: Object.fromEntries(d.programs.map((p) => [p.id, p.name])),
       ai: d.ranking === 'openai',
+      basisUrl: d.curriculum_source.url ?? null,
       basis: d.curriculum_source.title,
       inferred: d.inferred,
     }
@@ -165,8 +187,27 @@ export function RecommendPage() {
                   ))}
                 </div>
               </div>
-              {isAccount && career === 'any' && (
-                <p className={styles.aiHint}>진로를 고르면 AI가 그 진로에 맞춰 순서를 정해요.</p>
+              {isAccount && (
+                <div className={styles.semester}>
+                  <label>
+                    <span className={styles.label}>들을 학기</span>
+                    <select
+                      className={ui.select}
+                      value={targetSemester}
+                      onChange={(e) => setTargetSemester(e.target.value)}
+                    >
+                      {semesterOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t.replace('-', '년 ')}학기
+                        </option>
+                      ))}
+                      <option value="">정하지 않음</option>
+                    </select>
+                  </label>
+                  {career === 'any' && (
+                    <p className={styles.aiHint}>진로를 고르면 AI가 그 진로에 맞춰 순서를 정해요.</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -253,7 +294,16 @@ export function RecommendPage() {
             {(view.programs.length > 0 || myProgram) && <ProgramsCard programs={view.programs} myProgram={myProgram} />}
 
             <p className={ui.muted}>
-              추천은 내 교육과정 과목 중에서만 해요. 개설 여부 · 시간표는 수강신청 시스템에서 확인하세요. ({view.basis})
+              추천은 내 교육과정 과목 중에서만 해요. 각 과목의 효과는 그 과목 하나만 들었을 때 기준이라 여러 과목을
+              더하면 안 맞을 수 있어요. 개설 여부 · 시간표는 수강신청 시스템에서 확인하세요. (교육과정:{' '}
+              {view.basisUrl ? (
+                <a href={view.basisUrl} target="_blank" rel="noreferrer">
+                  {view.basis} ↗
+                </a>
+              ) : (
+                view.basis
+              )}
+              {view.inferred ? ' · 내 학번 교육과정이 아니라 추정' : ''})
             </p>
           </>
         )}
@@ -328,6 +378,9 @@ function ProgramsCard({ programs, myProgram }: { programs: ProgramRecommendation
         <h2 className={ui.cardTitle}>이어서 해볼 만한 융합전공 · 복수전공</h2>
         <span className={ui.muted}>이미 들은 과목이 겹치는 순</span>
       </div>
+      <p className={ui.sub} style={{ marginTop: 6 }}>
+        들은 과목과 관심 분야를 보고 골라 본 탐색 후보예요. 선발 여부와 학점 중복 인정은 해당 전공 공지에서 확인하세요.
+      </p>
       <ul className={styles.programs}>
         {myMissing && (
           <li data-mine>
