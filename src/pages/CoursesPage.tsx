@@ -26,6 +26,33 @@ import styles from './CoursesPage.module.css'
 /** 교과구분 변경 신청 후 바뀌는 교과구분 */
 const PROGRAM_CATEGORY = '융합전공'
 
+/** 융합전공으로 바꾸기 전 교과구분 — 되돌리기용 (이 브라우저에만 저장) */
+const ORIGINALS_KEY = 'graduate-up.program-originals'
+const courseKey = (c: Pick<Course, 'course_code' | 'semester'>) => `${c.course_code}@${c.semester}`
+
+function readOriginals(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(ORIGINALS_KEY) ?? '{}') as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+function saveOriginals(value: Record<string, string>) {
+  try {
+    localStorage.setItem(ORIGINALS_KEY, JSON.stringify(value))
+  } catch {
+    // 저장 못 해도 되돌리기는 일반선택으로 된다
+  }
+}
+
+/** '일반선택으로' · '전공필수로' — 받침에 맞춰 조사를 붙인다 */
+function withRo(word: string) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  const batchim = code >= 0 && code <= 11171 ? code % 28 : 0
+  return word + (batchim && batchim !== 8 ? '으로' : '로')
+}
+
 const STATUS_VALUES = new Set(COURSE_STATUS_OPTIONS.map((o) => o.value))
 
 const sameCourse = (a: Pick<Course, 'course_code' | 'semester'>, b: Pick<Course, 'course_code' | 'semester'>) =>
@@ -87,7 +114,24 @@ export function CoursesPage() {
   })).filter((k) => k.credits > 0)
   const gpaReady = courses.filter((c) => c.grade).length
   // 내 융합전공 과목인데 성적표에 일반선택으로 잡힌 과목 — 교과구분 변경 신청을 해야 융합전공 학점이 된다
-  const isProgramGeneral = (c: Course) => myProgram.codes.has(c.course_code) && c.transcript_category === '일반선택'
+  // 내 융합전공 과목이면 교과구분(일반선택 · 전공 등)과 상관없이 융합전공으로 바꿀 수 있다
+  const canChangeToProgram = (c: Course) =>
+    myProgram.codes.has(c.course_code) && c.transcript_category !== PROGRAM_CATEGORY
+  const [originals, setOriginals] = useState(readOriginals)
+
+  function changeToProgram(c: Course) {
+    const next = { ...originals, [courseKey(c)]: c.transcript_category }
+    setOriginals(next)
+    saveOriginals(next)
+    updateCourse(c, { transcript_category: PROGRAM_CATEGORY })
+  }
+
+  function revertProgram(c: Course) {
+    const { [courseKey(c)]: original, ...rest } = originals
+    setOriginals(rest)
+    saveOriginals(rest)
+    updateCourse(c, { transcript_category: original ?? '일반선택' })
+  }
 
   const courseList = (
     <>
@@ -172,25 +216,22 @@ export function CoursesPage() {
                               .filter(Boolean)
                               .join(' · ')}
                           </div>
-                          {isProgramGeneral(c) && (
+                          {canChangeToProgram(c) && (
                             <div className={styles.programHint}>
-                              <p>융합전공 과목에 해당해요. 교과구분 변경 신청을 하셨다면 교과구분을 변경해 주세요.</p>
-                              <button
-                                type="button"
-                                onClick={() => updateCourse(c, { transcript_category: PROGRAM_CATEGORY })}
-                              >
+                              <p>
+                                융합전공 과목에 해당해요. 교과구분 변경 신청을 하셨다면 교과구분을 변경해 주세요.
+                                {classifyCategory(c.transcript_category, c.course_code) === 'major' &&
+                                  ' 바꾸면 이 과목은 컴퓨터학부 전공 학점에서 빠져요.'}
+                              </p>
+                              <button type="button" onClick={() => changeToProgram(c)}>
                                 변경하기
                               </button>
                             </div>
                           )}
                           {myProgram.codes.has(c.course_code) && c.transcript_category === PROGRAM_CATEGORY && (
                             <div className={styles.programHint}>
-                              <button
-                                type="button"
-                                data-undo
-                                onClick={() => updateCourse(c, { transcript_category: '일반선택' })}
-                              >
-                                일반선택으로 되돌리기
+                              <button type="button" data-undo onClick={() => revertProgram(c)}>
+                                {withRo(originals[courseKey(c)] ?? '일반선택')} 되돌리기
                               </button>
                             </div>
                           )}
