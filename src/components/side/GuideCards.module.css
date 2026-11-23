@@ -94,9 +94,10 @@ li[data-state='past'] p {
 
 .alerts li {
   padding: 12px 14px;
-  border-left: 3px solid var(--color-teal);
+  /* 아직 할 일 — 경고 톤의 탁한 노랑 */
+  border-left: 3px solid #c99a3b;
   border-radius: var(--radius-sm);
-  background: var(--color-surface-muted);
+  background: #faf3e3;
 }
 
 .alerts li[data-tone='short'] {
@@ -126,7 +127,7 @@ li[data-state='past'] p {
 }
 
 .alertLinks a {
-  color: var(--color-navy);
+  color: var(--color-warning);
 }
 
 .alerts li[data-tone='short'] .alertLinks a {

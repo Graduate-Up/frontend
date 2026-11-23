@@ -177,7 +177,15 @@ export type StudentProfile = {
 }
 
 /** 로그인 사용자가 저장하는 프로필 (StudentProfile + 학번) */
-export type StudentSettings = StudentProfile & { student_number: string }
+/** 계정에 저장하는 학적 (판정 요청에는 student_number · convergence_program을 빼고 보낸다) */
+export type StudentSettings = StudentProfile & {
+  student_number: string
+  /** GET /convergence-programs의 id. null이면 지운다, 빼고 보내면 그대로 둔다 */
+  convergence_program?: string | null
+}
+
+/** 융합전공 목록 (GET /convergence-programs) */
+export type ProgramSummary = { id: string; name: string; kind: 'convergence' | 'double_major'; source: Source }
 
 // ── 판정 (evaluation) ──────────────────────────────────
 
@@ -312,7 +320,8 @@ export type StudentRecords = {
 }
 
 /** 첨성인기초 · 핵심 영역 8개 */
-export type LiberalAreaKey = '독서와토론' | '사고교육' | '글쓰기' | '외국어' | '수리' | '기초과학' | '인문·사회' | '자연과학'
+export type LiberalAreaKey =
+  '독서와토론' | '사고교육' | '글쓰기' | '외국어' | '수리' | '기초과학' | '인문·사회' | '자연과학'
 
 export type LiberalSummary = Record<LiberalAreaKey, number>
 

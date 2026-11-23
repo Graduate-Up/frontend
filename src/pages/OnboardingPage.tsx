@@ -1,10 +1,18 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { getMajors, getTracks, type MajorCode, type MultiMajor, type StudentStatus } from '@/api'
+import {
+  getConvergencePrograms,
+  getMajors,
+  getTracks,
+  type MajorCode,
+  type MultiMajor,
+  type StudentStatus,
+} from '@/api'
 import { Logo } from '@/components/Logo'
 import { ErrorState, Loading, errorText, ui } from '@/components/ui'
 import { MULTI_MAJOR_OPTIONS, STUDENT_STATUS_OPTIONS } from '@/constants/labels'
 import { useStudent } from '@/state/useStudent'
+import { CONVERGENCE_PROGRAMS, PROGRAM_MULTI_MAJORS } from '@/content/programs'
 import { ABEEK_LAST_GRADUATION } from '@/state/profile'
 import { useAsync } from '@/state/useAsync'
 import { MAJOR_LABEL } from '@/types/student'
@@ -21,9 +29,16 @@ const MULTI_MAJOR_TRACK = 'multi_major'
 /** 지원 학번: 2019 ~ 2026 */
 const ADMISSION_YEARS = Array.from({ length: 8 }, (_, i) => 2026 - i)
 
+/** 계정 정보를 다 불러온 뒤에 폼을 그린다 (새로고침 직후 저장된 학적이 빈칸으로 시작하지 않게) */
 export function OnboardingPage() {
+  const { kind } = useStudent()
+  if (kind === 'loading') return null
+  return <OnboardingForm />
+}
+
+function OnboardingForm() {
   const navigate = useNavigate()
-  const { kind, profile, studentNumber, saveProfile } = useStudent()
+  const { kind, profile, studentNumber, saveProfile, convergenceProgram } = useStudent()
 
   // 지원하지 않는 학번(2018 이하)으로 저장돼 있었으면 다시 고르게 한다
   const [year, setYear] = useState<number | null>(
@@ -34,6 +49,12 @@ export function OnboardingPage() {
   const [variant, setVariant] = useState<string | null>(profile?.track_variant ?? null)
   const [abeek, setAbeek] = useState<boolean | null>(profile?.abeek ?? null)
   const [multiMajor, setMultiMajor] = useState<MultiMajor>(profile?.multi_major ?? 'none')
+  // 어떤 융합전공인지 — '' 는 복수 · 연계전공이라 해당 없음
+  const [program, setProgram] = useState<string>(convergenceProgram ?? '')
+  // 백엔드 융합전공 목록 (못 불러오면 예비 목록 · 이 브라우저에만 저장)
+  const programList = useAsync('convergence-programs', (signal) => getConvergencePrograms({ signal }))
+  const programOptions = programList.data?.filter((p) => p.kind === 'convergence') ?? CONVERGENCE_PROGRAMS
+  const showProgram = PROGRAM_MULTI_MAJORS.includes(multiMajor)
   const [status, setStatus] = useState<StudentStatus>(profile?.student_status ?? 'new')
   const [gradDate, setGradDate] = useState<string>(profile?.expected_graduation_date ?? '')
   const [semesters, setSemesters] = useState<string>(
@@ -108,6 +129,7 @@ export function OnboardingPage() {
           registered_semesters: semesters ? Number(semesters) : null,
         },
         isAccount ? number : undefined,
+        { id: showProgram && program ? program : null, server: !!programList.data },
       )
       navigate('/', { replace: true })
     } catch (err) {
@@ -250,6 +272,23 @@ export function OnboardingPage() {
                   )}
                 </Field>
 
+                {showProgram && (
+                  <Field label="융합전공 (해당되면)">
+                    <select className={ui.select} value={program} onChange={(e) => setProgram(e.target.value)}>
+                      <option value="">복수 · 연계전공이에요 / 아직 안 정했어요</option>
+                      {programOptions.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={styles.abeekNote}>
+                      학적에 함께 저장돼요. 과목 추천에서 이 융합전공 과목을 먼저 보여줘요. 졸업요건 판정에는 아직
+                      반영되지 않아요.
+                    </p>
+                  </Field>
+                )}
+
                 <Field label="입학 구분">
                   <select
                     className={ui.select}
@@ -287,7 +326,9 @@ export function OnboardingPage() {
                       </option>
                     ))}
                   </select>
-                  <p className={styles.abeekNote}>휴학 · 계절학기는 빼고 세어 주세요. 조기졸업 대상인지 판정할 때 써요.</p>
+                  <p className={styles.abeekNote}>
+                    휴학 · 계절학기는 빼고 세어 주세요. 조기졸업 대상인지 판정할 때 써요.
+                  </p>
                 </Field>
 
                 {needsAbeek && (

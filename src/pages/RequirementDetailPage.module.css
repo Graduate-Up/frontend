@@ -347,3 +347,8 @@ a.option:hover {
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+/* 아직 제출하지 않은 확인 항목은 빨갛게 */
+.state[data-missing] {
+  color: var(--color-danger);
+}

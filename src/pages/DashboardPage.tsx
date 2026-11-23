@@ -65,7 +65,7 @@ function Dashboard({
   rule: GraduationRule | undefined
   result: EvaluationResponse
 }) {
-  const views = buildRequirementViews(rule, result)
+  const views = buildRequirementViews(rule, result, profile)
   const { courses, englishScores } = useStudent()
   const alerts = buildAlerts({
     profile,
@@ -171,11 +171,14 @@ function RequirementRow({ view }: { view: RequirementView }) {
         </strong>
         {view.sub && <span>{view.sub}</span>}
       </div>
-      <span className={styles.rowValue}>{view.valueText}</span>
+      <span className={styles.rowValue} data-missing={view.valueText === '미제출' || undefined}>
+        {view.valueText}
+      </span>
       <span className={styles.rowStatus}>
         <StatusBadge
           status={view.result.status}
           notStarted={view.notStarted}
+          later={view.later}
           notApplicable={view.result.not_applicable}
         />
       </span>

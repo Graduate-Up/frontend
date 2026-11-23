@@ -94,7 +94,7 @@ function MyRequirements({
 }) {
   const profile = useProfile()
   const [filter, setFilter] = useState<Filter>('all')
-  const views = buildRequirementViews(rule, result)
+  const views = buildRequirementViews(rule, result, profile)
   const count = (f: Filter) => views.filter((v) => matches(f, v)).length
   const visible = views.filter((v) => matches(filter, v))
   const groups = GROUP_ORDER.map((g) => ({ group: g, items: visible.filter((v) => v.group === g) })).filter(
@@ -187,7 +187,12 @@ function RequirementItem({ view }: { view: RequirementView }) {
         <div className={styles.itemTitle}>
           <ScopeBadge scope={view.scope} />
           <h3>{view.name}</h3>
-          <StatusBadge status={r.status} notStarted={view.notStarted} notApplicable={r.not_applicable} />
+          <StatusBadge
+            status={r.status}
+            notStarted={view.notStarted}
+            notApplicable={r.not_applicable}
+            later={view.later}
+          />
         </div>
         <Link to={`/requirements/${encodeURIComponent(view.id)}`} className={styles.more}>
           자세히 ›
@@ -212,7 +217,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
         </div>
       ) : (
         <p className={styles.value}>
-          <b>{view.valueText}</b>
+          <b data-missing={view.valueText === '미제출' || undefined}>{view.valueText}</b>
         </p>
       )}
 
@@ -251,6 +256,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
 /** 내 상황을 한 문장으로 */
 function statusMessage(view: RequirementView): string {
   const r = view.result
+  if (view.later) return '졸업 직전 학기에 하면 돼요. 지금은 안 해도 괜찮아요.'
   const unit = view.unit
   switch (r.status) {
     case 'satisfied':

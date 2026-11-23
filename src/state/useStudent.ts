@@ -47,7 +47,17 @@ export type StudentContextValue = {
   /** 로그인 직후 호출 — 내 정보를 불러와 세션을 채운다. 프로필 유무를 돌려준다 */
   loadAccount: () => Promise<boolean>
   startGuest: () => void
-  saveProfile: (profile: StudentProfile, studentNumber?: string) => Promise<void>
+  /**
+   * program: 고른 융합전공 (undefined면 그대로). server가 true면 계정에 저장하고,
+   * false면(백엔드가 아직 지원 안 함) 이 브라우저에만 둔다
+   */
+  saveProfile: (
+    profile: StudentProfile,
+    studentNumber?: string,
+    program?: { id: string | null; server: boolean },
+  ) => Promise<void>
+  /** 학적에 저장한 융합전공 id */
+  convergenceProgram: string | null
   signOut: () => Promise<void>
 }
 

@@ -271,3 +271,9 @@
 .progressChip b {
   color: var(--color-navy);
 }
+
+/* 아직 제출하지 않은 확인 항목은 빨갛게 */
+.rowValue[data-missing] {
+  color: var(--color-danger);
+  font-weight: 700;
+}

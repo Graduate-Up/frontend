@@ -54,6 +54,8 @@ export type RequirementView = {
   /** 이름 아래 보조 설명 */
   sub: string
   notStarted: boolean
+  /** 졸업 학기에만 하면 되는 졸업심사 항목인데 아직 졸업 학기가 아님 — 회색 '진행 전' (미제출 빨강 대신) */
+  later: boolean
   details: string[]
   sources: Source[]
 }
@@ -79,10 +81,24 @@ export function profileSummary(p: StudentProfile) {
   return parts.join(' · ')
 }
 
+/** 이번 학기에 졸업하는 학기 (YYYY-02 또는 YYYY-08). 3~8월은 그해 8월, 9~12월은 다음 해 2월, 1~2월은 그해 2월 */
+export function currentGraduationTerm(now = new Date()) {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  if (m >= 3 && m <= 8) return `${y}-08`
+  return m >= 9 ? `${y + 1}-02` : `${y}-02`
+}
+
+/** 졸업심사(포트폴리오 · 면담 · TOPCIT)처럼 졸업 직전 학기에 하는 항목 */
+const isGraduationReview = (id: string) => id.startsWith('review-')
+
 export function buildRequirementViews(
   rule: GraduationRule | undefined,
   evaluation: EvaluationResponse,
+  profile?: StudentProfile,
 ): RequirementView[] {
+  // 졸업 예정 학기가 이번 학기가 아니면(또는 아직 모르면) 졸업심사 항목은 나중에 해도 된다
+  const graduatingNow = profile?.expected_graduation_date === currentGraduationTerm()
   const groupOf = new Map<string, RequirementGroup>()
   const unitOf = new Map<string, string>()
   const detailsOf = new Map<string, string[]>()
@@ -107,8 +123,10 @@ export function buildRequirementViews(
           : (unitOf.get(result.id) ?? (/\d+학점/.test(result.name) ? '학점' : ''))
     const details = detailsOf.get(result.id) ?? []
 
+    const later = !!profile && !graduatingNow && isGraduationReview(result.id) && result.status !== 'satisfied'
     let valueText: string
     if (group === 'verification') valueText = '학부 확인 필요'
+    else if (later) valueText = '졸업 학기에 진행'
     else if (group === 'nonacademic' && result.required === 1 && !unit)
       valueText = result.status === 'satisfied' ? '확인 완료' : '미제출'
     else valueText = `${formatCredits(result.current)} / ${formatCredits(result.required)}${unit}`
@@ -117,7 +135,8 @@ export function buildRequirementViews(
     if (group === 'course' && result.required_courses?.length) {
       const names = result.required_courses.map((c) => c.course_name)
       sub = names.slice(0, 3).join(' · ') + (names.length > 3 ? ` 외 ${names.length - 3}개` : '')
-    } else if (details.length) sub = details[0]
+    } else if (later) sub = '졸업 직전 학기에 하면 돼요'
+    else if (details.length) sub = details[0]
     else sub = reasonText(result.reason)
 
     return {
@@ -130,6 +149,7 @@ export function buildRequirementViews(
       valueText,
       sub,
       notStarted: group !== 'credit' && result.current === 0 && result.status === 'unsatisfied',
+      later,
       details,
       sources: result.sources,
     }

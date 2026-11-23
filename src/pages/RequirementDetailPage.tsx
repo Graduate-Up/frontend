@@ -44,7 +44,7 @@ export function RequirementDetailPage() {
   const rule = useRequirements(profile)
   const evaluation = useEvaluation(profile, courses, records)
 
-  const views = evaluation.data ? buildRequirementViews(rule.data, evaluation.data) : []
+  const views = evaluation.data ? buildRequirementViews(rule.data, evaluation.data, profile) : []
   const view = views.find((v) => v.id === id)
 
   return (
@@ -129,7 +129,12 @@ function Detail({
           <div className={styles.titleRow}>
             <ScopeBadge scope={view.scope} />
             <h1 className={styles.title}>{view.name}</h1>
-            <StatusBadge status={r.status} notStarted={view.notStarted} notApplicable={r.not_applicable} />
+            <StatusBadge
+              status={r.status}
+              notStarted={view.notStarted}
+              notApplicable={r.not_applicable}
+              later={view.later}
+            />
           </div>
           {showNumber ? (
             <>
@@ -152,7 +157,9 @@ function Detail({
               </div>
             </>
           ) : (
-            <p className={styles.state}>{view.valueText}</p>
+            <p className={styles.state} data-missing={view.valueText === '미제출' || undefined}>
+              {view.valueText}
+            </p>
           )}
           <p className={styles.basis}>
             기준: {majorTitle(profile)} · {profileSummary(profile)} → {view.name}
