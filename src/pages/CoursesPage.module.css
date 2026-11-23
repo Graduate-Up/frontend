@@ -159,3 +159,48 @@
   white-space: nowrap;
   color: #b4236b;
 }
+
+/* 일반선택으로 잡힌 융합전공 과목 안내 */
+.programNotice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f3c2d8;
+  border-radius: var(--radius-md);
+  background: #fdf5f9;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.programNotice strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14px;
+  color: #b4236b;
+}
+
+.programNotice b {
+  color: var(--color-text);
+}
+
+.programFix,
+.programUndo {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.programFix {
+  color: #b4236b;
+}
+
+.programUndo {
+  color: var(--color-text-muted);
+}

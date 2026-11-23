@@ -71,11 +71,12 @@ export function majorTitle(p: StudentProfile) {
 }
 
 /** 예: ABEEK 미이수 · 다전공 없음 · 2027년 2월 졸업 예정 */
-export function profileSummary(p: StudentProfile) {
+export function profileSummary(p: StudentProfile, program?: string) {
   const parts: string[] = []
   if (p.track) parts.push(TRACK_LABEL[p.track] ?? p.track)
   if (p.major === 'plsop' && p.abeek != null) parts.push(p.abeek ? 'ABEEK 이수' : 'ABEEK 미이수')
-  parts.push(p.multi_major && p.multi_major !== 'none' ? MULTI_MAJOR_LABEL[p.multi_major] : '다전공 없음')
+  // 융합전공을 골랐으면 '복수·연계·융합전공' 대신 실제 융합전공 이름을 보여준다
+  parts.push(program ?? (p.multi_major && p.multi_major !== 'none' ? MULTI_MAJOR_LABEL[p.multi_major] : '다전공 없음'))
   const grad = formatGraduation(p.expected_graduation_date)
   if (grad) parts.push(`${grad} 졸업 예정`)
   return parts.join(' · ')

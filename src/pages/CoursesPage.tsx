@@ -22,6 +22,9 @@ import {
 import { useProfile, useStudent } from '@/state/useStudent'
 import styles from './CoursesPage.module.css'
 
+/** 교과구분 변경 신청 후 바뀌는 교과구분 */
+const PROGRAM_CATEGORY = '융합전공'
+
 const STATUS_VALUES = new Set(COURSE_STATUS_OPTIONS.map((o) => o.value))
 
 const sameCourse = (a: Pick<Course, 'course_code' | 'semester'>, b: Pick<Course, 'course_code' | 'semester'>) =>
@@ -80,6 +83,17 @@ export function CoursesPage() {
       .reduce((n, c) => n + c.credits, 0),
   })).filter((k) => k.credits > 0)
   const gpaReady = courses.filter((c) => c.grade).length
+  // 내 융합전공 과목인데 성적표에 일반선택으로 잡힌 과목 — 교과구분 변경 신청을 해야 융합전공 학점이 된다
+  const isProgramGeneral = (c: Course) => myProgram.codes.has(c.course_code) && c.transcript_category === '일반선택'
+  const programGeneral = courses.filter(isProgramGeneral)
+
+  function changeToProgram(c: Course) {
+    const ok = window.confirm(
+      `${c.course_name || names.get(c.course_code) || c.course_code}의 교과구분을 융합전공으로 바꿀까요?\n\n` +
+        '학교에 교과구분 변경 신청을 한 과목만 바꿔 주세요. 신청하지 않았다면 성적표에는 그대로 일반선택이에요.',
+    )
+    if (ok) updateCourse(c, { transcript_category: PROGRAM_CATEGORY })
+  }
 
   const courseList = (
     <>
@@ -104,6 +118,18 @@ export function CoursesPage() {
             </span>
           )}
         </div>
+        {programGeneral.length > 0 && (
+          <div className={styles.programNotice}>
+            <strong>
+              {myProgram.program?.name} 과목 {programGeneral.length}개가 일반선택으로 잡혀 있어요
+            </strong>
+            <p>
+              {programGeneral.map((c) => c.course_name || names.get(c.course_code) || c.course_code).join(' · ')} —
+              학교에 <b>교과구분 변경 신청</b>을 하면 융합전공 학점으로 인정돼요. 신청했다면 아래 과목의{' '}
+              <b>융합전공으로 변경</b>을 눌러 주세요.
+            </p>
+          </div>
+        )}
         {evaluation.status === 'error' && (
           <div style={{ marginTop: 12 }}>
             <ErrorState error={evaluation.error} />
@@ -171,6 +197,25 @@ export function CoursesPage() {
                             <span className={styles.programTag} title={myProgram.program?.name}>
                               내 융합전공
                             </span>
+                          )}
+                          {isProgramGeneral(c) && (
+                            <button
+                              type="button"
+                              className={styles.programFix}
+                              title="교과구분 변경 신청을 했다면 눌러 주세요"
+                              onClick={() => changeToProgram(c)}
+                            >
+                              신청했어요 · 융합전공으로 변경
+                            </button>
+                          )}
+                          {myProgram.codes.has(c.course_code) && c.transcript_category === PROGRAM_CATEGORY && (
+                            <button
+                              type="button"
+                              className={styles.programUndo}
+                              onClick={() => updateCourse(c, { transcript_category: '일반선택' })}
+                            >
+                              일반선택으로 되돌리기
+                            </button>
                           )}
                         </td>
                         <td>

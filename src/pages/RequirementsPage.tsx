@@ -15,7 +15,7 @@ import {
   ui,
 } from '@/components/ui'
 import { reasonText } from '@/constants/labels'
-import { useEvaluation, useRequirements } from '@/state/queries'
+import { useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
   GROUP_ORDER,
@@ -93,6 +93,7 @@ function MyRequirements({
   courseCount: number
 }) {
   const profile = useProfile()
+  const programLabel = useMyProgramName()
   const [filter, setFilter] = useState<Filter>('all')
   const views = buildRequirementViews(rule, result, profile)
   const count = (f: Filter) => views.filter((v) => matches(f, v)).length
@@ -123,7 +124,7 @@ function MyRequirements({
 
       <div className={styles.basis}>
         <strong>{majorTitle(profile)}</strong>
-        <span>{profileSummary(profile)}</span>
+        <span>{profileSummary(profile, programLabel)}</span>
         {courseCount === 0 && (
           <Link to="/courses" className={styles.basisLink}>
             이수 내역을 입력하면 판정이 정확해져요 ›
