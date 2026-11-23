@@ -5,6 +5,8 @@ export type NavItem = {
   count?: 'hidden-credits'
   /** 이 메뉴 화면 안의 위치로 가는 소메뉴 (#id) */
   children?: { hash: string; label: string }[]
+  /** 이 메뉴 위에 구분선 (챗봇부터는 도구 메뉴) */
+  divider?: boolean
 }
 
 /** 전체 졸업요건 화면의 그룹 구역 id */
@@ -40,7 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { path: '/hidden-credits', label: '숨은 학점', count: 'hidden-credits' },
   { path: '/schedule', label: '졸업 일정' },
-  { path: '/chat', label: '챗봇에게 질문하기' },
+  { path: '/chat', label: '챗봇에게 질문하기', divider: true },
   { path: '/recommend', label: '과목 추천' },
   { path: '/notices', label: '근거 공지 모음' },
 ]

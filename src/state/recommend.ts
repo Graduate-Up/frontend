@@ -8,8 +8,14 @@ import { isLiberalCurriculum, isMajorCurriculum, offeredByDepartment } from './q
  * 과목 추천 — 남은 요건을 채우는 과목만 후보로 고르고, 진로 키워드로 순서를 정한다.
  * (백엔드에 선수과목 · 진로 분류 · 강의계획서 데이터가 없어 과목명 키워드로 나눈다)
  */
-/** 백엔드 진로 태그 (CareerTag) + '아직 모르겠어요' */
-export type Career = CareerTag | 'any'
+/** 백엔드에 진로 태그가 없어 과목명 키워드로만 고르는 진로 */
+export type LocalCareer = 'frontend' | 'pm'
+/** 백엔드 진로 태그 (CareerTag) + 프론트 전용 진로 + '아직 모르겠어요' */
+export type Career = CareerTag | LocalCareer | 'any'
+
+const SERVER_CAREERS: readonly string[] = ['ai_data', 'backend', 'security', 'graduate_study']
+/** 백엔드 추천 API에 보낼 수 있는 진로인지 */
+export const isServerCareer = (c: Career): c is CareerTag => SERVER_CAREERS.includes(c)
 
 export const CAREERS: { id: Career; label: string; keywords: string[] }[] = [
   {
@@ -78,8 +84,51 @@ export const CAREERS: { id: Career; label: string; keywords: string[] }[] = [
       '이산',
     ],
   },
+  {
+    id: 'frontend',
+    label: '프론트엔드',
+    keywords: [
+      '웹',
+      '모바일',
+      '앱',
+      '인터페이스',
+      'UI',
+      'HCI',
+      '사용자',
+      '그래픽스',
+      '멀티미디어',
+      '자바스크립트',
+      '오픈소스',
+      '소프트웨어설계',
+    ],
+  },
+  {
+    id: 'pm',
+    label: 'PM · 기획',
+    keywords: [
+      '소프트웨어공학',
+      'SW공학',
+      '프로젝트',
+      '종합설계',
+      '창업',
+      '경영',
+      '기획',
+      '마케팅',
+      '인간',
+      '데이터분석',
+      '오픈소스',
+    ],
+  },
   { id: 'any', label: '아직 모르겠어요', keywords: [] },
 ]
+
+/** 진로와 맞는 과목인지 — 백엔드 진로 태그가 있으면 그걸, 없으면(프론트 · PM 포함) 과목명 키워드로 */
+export function careerMatches(career: Career, name: string, tags?: CareerTag[] | null) {
+  if (career === 'any') return false
+  if (isServerCareer(career) && tags?.length) return tags.includes(career)
+  const keywords = CAREERS.find((c) => c.id === career)?.keywords ?? []
+  return keywords.some((k) => name.includes(k))
+}
 
 export type Recommendation = {
   course: CatalogCourse
@@ -117,11 +166,7 @@ export function recommend(
     if (aliases.some((a) => taken.has(a))) taken.add(code)
   }
   const byCode = new Map(catalog.map((c) => [c.course_code, c]))
-  const keywords = CAREERS.find((c) => c.id === career)?.keywords ?? []
-  // 백엔드 진로 태그가 있으면 그걸, 없으면 과목명 키워드로
-  const matches = (c: CatalogCourse) =>
-    career !== 'any' &&
-    (c.career_tags?.length ? c.career_tags.includes(career) : keywords.some((k) => c.course_name.includes(k)))
+  const matches = (c: CatalogCourse) => careerMatches(career, c.course_name, c.career_tags)
   const grade = currentGrade(profile.admission_year)
 
   const req = (area: string) => e.requirements.find((r) => r.credit_area === area)
@@ -189,7 +234,7 @@ export function recommend(
       if (offeredByDepartment(c) && isMajorCurriculum(c.curriculum_category))
         add(c, `졸업학점 ${formatCredits(c.credits)}학점`, '남은 졸업학점을 채워요.')
   // 남은 요건이 없으면 진로 과목만
-  if (!out.size && keywords.length)
+  if (!out.size && career !== 'any')
     for (const c of catalog) if (matches(c) && isMajorCurriculum(c.curriculum_category)) add(c, '관심 분야', '')
 
   const yearOf = (c: CatalogCourse) => Number(c.recommended_year) || grade
