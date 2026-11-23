@@ -5,6 +5,7 @@ import { Logo } from '@/components/Logo'
 import { ErrorState, Loading, errorText, ui } from '@/components/ui'
 import { MULTI_MAJOR_OPTIONS, STUDENT_STATUS_OPTIONS } from '@/constants/labels'
 import { useStudent } from '@/state/useStudent'
+import { ABEEK_LAST_GRADUATION } from '@/state/profile'
 import { useAsync } from '@/state/useAsync'
 import { MAJOR_LABEL } from '@/types/student'
 import styles from './OnboardingPage.module.css'
@@ -53,7 +54,10 @@ export function OnboardingPage() {
   const majorOk = !!majors.data?.majors.some((m) => m.code === major)
   const trackOk = !hasTracks || (track ? trackInfo!.tracks.includes(track) : trackInfo!.allows_no_track)
   const variantOk = !variants || (variant !== null && variant in variants)
-  const abeekOk = !needsAbeek || abeek !== null
+  // ABEEK 이수는 2029년 2월 졸업까지만 (백엔드 규칙 program_end). 그 뒤 졸업이면 미이수로 고정
+  const abeekLocked = needsAbeek && !!gradDate && gradDate > ABEEK_LAST_GRADUATION
+  const abeekValue = abeekLocked ? false : abeek
+  const abeekOk = !needsAbeek || abeekValue !== null
   const numberOk = !isAccount || /^[0-9]{1,32}$/.test(number)
   const multiTrack = hasTracks && track === MULTI_MAJOR_TRACK
   const multiOptions = multiTrack ? MULTI_MAJOR_OPTIONS.filter((o) => o.value !== 'none') : MULTI_MAJOR_OPTIONS
@@ -90,7 +94,7 @@ export function OnboardingPage() {
           major,
           track: hasTracks ? track : null,
           track_variant: variants ? variant : null,
-          abeek: needsAbeek ? abeek : null,
+          abeek: needsAbeek ? abeekValue : null,
           multi_major: multiMajor,
           student_status: status,
           expected_graduation_date: gradDate || null,
@@ -177,7 +181,8 @@ export function OnboardingPage() {
                             setTrack(t)
                             setVariant(null)
                             // 다중전공 트랙을 고르면 '안 함'은 고를 수 없으니 첫 선택지로 바꿔둔다
-                            if (t === MULTI_MAJOR_TRACK && multiMajor === 'none') setMultiMajor('double_or_linked_or_convergence')
+                            if (t === MULTI_MAJOR_TRACK && multiMajor === 'none')
+                              setMultiMajor('double_or_linked_or_convergence')
                           }}
                         >
                           {trackInfo.track_labels?.[t] ?? t}
@@ -217,19 +222,6 @@ export function OnboardingPage() {
                   </Field>
                 )}
 
-                {needsAbeek && (
-                  <Field label="공학교육인증(ABEEK)">
-                    <div className={styles.row}>
-                      <Choice selected={abeek === true} onClick={() => setAbeek(true)}>
-                        이수
-                      </Choice>
-                      <Choice selected={abeek === false} onClick={() => setAbeek(false)}>
-                        미이수
-                      </Choice>
-                    </div>
-                  </Field>
-                )}
-
                 <Field label="다전공">
                   <select
                     className={ui.select}
@@ -244,7 +236,9 @@ export function OnboardingPage() {
                     ))}
                   </select>
                   {multiTrack && (
-                    <span className={ui.muted}>다중전공 트랙은 복수 · 부 · 연계 · 융합전공이나 교직과정 중 하나를 골라주세요.</span>
+                    <span className={ui.muted}>
+                      다중전공 트랙은 복수 · 부 · 연계 · 융합전공이나 교직과정 중 하나를 골라주세요.
+                    </span>
                   )}
                 </Field>
 
@@ -275,6 +269,37 @@ export function OnboardingPage() {
                     ])}
                   </select>
                 </Field>
+
+                {needsAbeek && (
+                  <Field label="공학교육인증(ABEEK)">
+                    <div className={styles.row}>
+                      <Choice selected={abeekValue === true} disabled={abeekLocked} onClick={() => setAbeek(true)}>
+                        {abeekLocked ? '🔒 이수' : '이수'}
+                      </Choice>
+                      <Choice
+                        selected={abeekValue === false}
+                        onClick={() => {
+                          // 이수 → 미이수로 바꿀 때만 한 번 더 묻는다 (실수 방지)
+                          if (
+                            abeekValue === true &&
+                            !confirm(
+                              'ABEEK 미이수 기준으로 바꿀까요?\n\n학교에서 ABEEK 포기(미이수 전환)를 신청한 경우에만 바꿔주세요. 학교에서 미이수로 바꾸면 되돌릴 수 없어요.\n졸UP 설정은 나중에 학적 변경에서 언제든 바꿀 수 있어요.',
+                            )
+                          )
+                            return
+                          setAbeek(false)
+                        }}
+                      >
+                        미이수
+                      </Choice>
+                    </div>
+                    <p className={abeekLocked ? styles.abeekLocked : styles.abeekNote}>
+                      {abeekLocked
+                        ? '2029년 2월 이후 졸업이면 ABEEK 인증이 끝나 미이수로 고정돼요.'
+                        : 'ABEEK 이수는 2029년 2월 졸업까지만 가능해요. 학교에서 미이수로 바꾸면 되돌릴 수 없으니, 지금 학적대로 골라주세요. 졸UP 설정은 언제든 바꿀 수 있어요.'}
+                    </p>
+                  </Field>
+                )}
 
                 {isAccount && (
                   <Field label="학번">
@@ -328,15 +353,17 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function Choice({
   selected,
+  disabled,
   onClick,
   children,
 }: {
   selected: boolean
+  disabled?: boolean
   onClick: () => void
   children: ReactNode
 }) {
   return (
-    <button type="button" className={styles.choice} aria-pressed={selected} onClick={onClick}>
+    <button type="button" className={styles.choice} aria-pressed={selected} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   )
