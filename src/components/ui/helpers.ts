@@ -21,6 +21,11 @@ export function formatCredits(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
+/** 요건 값 — 평점평균은 성적표처럼 소수 둘째 자리(3.85), 나머지는 학점 · 과목 수 */
+export function formatAmount(n: number, requirementId: string) {
+  return requirementId === 'gpa' ? n.toFixed(2) : formatCredits(n)
+}
+
 /** 요건을 이미 채웠는데 아직 안 들은 과목 (예: 종합설계 4과목 중 택1을 채운 뒤 나머지) */
 export const isNotNeeded = (requirementStatus: string, courseStatus: string) =>
   requirementStatus === 'satisfied' && courseStatus === 'missing'

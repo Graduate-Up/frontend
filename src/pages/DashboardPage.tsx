@@ -6,6 +6,7 @@ import { InquiryCard } from '@/components/side/SideCards'
 import { ErrorState, Loading, Pill, ScopeBadge, StatusBadge, formatCredits, ui } from '@/components/ui'
 import { OFFICIAL_ENGLISH_KEY } from '@/content/englishTests'
 import { buildAlerts } from '@/state/alerts'
+import { multiMajorCredits, multiMajorTarget } from '@/state/courseCategory'
 import { useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
@@ -104,7 +105,13 @@ function Dashboard({
 
       <div className={ui.split}>
         <div className={ui.stack}>
-          <CreditSummary views={views} rule={rule} majorCode={profile.major} />
+          <CreditSummary
+            views={views}
+            rule={rule}
+            majorCode={profile.major}
+            multi={multiMajorTarget(profile.multi_major, programLabel)}
+            multiCur={multiMajorCredits(courses)}
+          />
 
           {courseCount === 0 && (
             <div className={ui.highlight}>
@@ -192,10 +199,14 @@ function CreditSummary({
   views,
   rule,
   majorCode,
+  multi,
+  multiCur,
 }: {
   views: RequirementView[]
   rule: GraduationRule | undefined
   majorCode: StudentProfile['major']
+  multi: { label: string; credits: number } | null
+  multiCur: number
 }) {
   // 총 졸업학점 요건의 근거 중 내 전공 공지
   const totalSources = views.find((v) => v.result.credit_area === 'total')?.sources ?? rule?.sources ?? []
@@ -211,11 +222,14 @@ function CreditSummary({
   if (!total) return null
 
   const totalReq = Math.max(total.required, 1)
-  const otherReq = Math.max(0, total.required - (major?.required ?? 0) - (liberal?.required ?? 0))
-  const otherCur = Math.max(0, total.current - (major?.current ?? 0) - (liberal?.current ?? 0))
+  // 다전공(복수 · 연계 · 융합 36, 부전공 18)은 졸업학점 안에서 따로 떼어 분홍으로 보여준다
+  const multiReq = multi?.credits ?? 0
+  const otherReq = Math.max(0, total.required - (major?.required ?? 0) - (liberal?.required ?? 0) - multiReq)
+  const otherCur = Math.max(0, total.current - (major?.current ?? 0) - (liberal?.current ?? 0) - (multi ? multiCur : 0))
   const segments = [
     { key: 'major', label: '전공', cur: major?.current ?? 0, req: major?.required ?? 0, cls: styles.segMajor },
     { key: 'liberal', label: '교양', cur: liberal?.current ?? 0, req: liberal?.required ?? 0, cls: styles.segLiberal },
+    ...(multi ? [{ key: 'multi', label: multi.label, cur: multiCur, req: multiReq, cls: styles.segMulti }] : []),
     { key: 'other', label: '그 외', cur: otherCur, req: otherReq, cls: styles.segOther },
   ].filter((s) => s.req > 0 || s.cur > 0)
 

@@ -101,6 +101,15 @@
   background: var(--color-teal);
 }
 
+.segMulti {
+  background: #fdecf3;
+}
+
+.segMulti .segFill,
+.legend .segMulti i {
+  background: #b4236b;
+}
+
 .segOther {
   background: var(--color-surface-muted);
 }

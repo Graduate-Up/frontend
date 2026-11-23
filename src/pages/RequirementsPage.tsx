@@ -11,6 +11,7 @@ import {
   ScopeBadge,
   Sources,
   StatusBadge,
+  formatAmount,
   formatCredits,
   ui,
 } from '@/components/ui'
@@ -203,7 +204,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
       {numeric ? (
         <div className={styles.progress}>
           <span className={styles.value}>
-            <b>{formatCredits(r.current)}</b> / {formatCredits(r.required)}
+            <b>{formatAmount(r.current, r.id)}</b> / {formatAmount(r.required, r.id)}
             {view.unit}
           </span>
           <div className={styles.bar}>
@@ -213,7 +214,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
             />
           </div>
           <span className={styles.gap} data-done={r.shortfall <= 0}>
-            {r.shortfall > 0 ? `${formatCredits(r.shortfall)}${view.unit} 남음` : '채움'}
+            {r.shortfall > 0 ? `${formatAmount(r.shortfall, r.id)}${view.unit} 남음` : '채움'}
           </span>
         </div>
       ) : (
@@ -275,7 +276,7 @@ function statusMessage(view: RequirementView): string {
       }
       if (view.group === 'nonacademic' && r.required === 1 && !unit)
         return '아직 기록하지 않았어요. 취득했다면 자세히에서 표시해주세요.'
-      if (r.current === 0) return `아직 시작 전이에요. ${formatCredits(r.required)}${unit}이 필요해요.`
-      return `${formatCredits(r.shortfall)}${unit} 더 채워야 해요.`
+      if (r.current === 0) return `아직 시작 전이에요. ${formatAmount(r.required, r.id)}${unit}이 필요해요.`
+      return `${formatAmount(r.shortfall, r.id)}${unit} 더 채워야 해요.`
   }
 }

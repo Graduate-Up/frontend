@@ -1,4 +1,4 @@
-import type { CreditArea, CreditCategory, CreditEntry, EvaluationResponse } from '@/api/types'
+import type { Course, CreditArea, CreditCategory, CreditEntry, EvaluationResponse, MultiMajor } from '@/api/types'
 
 /**
  * 성적표 교과구분으로 과목을 분류한다.
@@ -45,6 +45,37 @@ export function classifyCategory(category: string | null | undefined, code?: str
 
 export const KIND_ORDER: CourseKind[] = ['major', 'liberal', 'general', 'startup', 'multi', 'other']
 
+/**
+ * 다전공 이수학점 목표 — 복수 · 연계 · 융합전공 36학점, 부전공 18학점.
+ * 융합전공을 골랐으면 그 이름으로 보여준다. 교직이나 다전공 없음은 목표가 없다.
+ */
+export function multiMajorTarget(
+  multi: MultiMajor | null | undefined,
+  program?: string,
+): { label: string; credits: number } | null {
+  switch (multi) {
+    case 'double_or_linked_or_convergence':
+      return { label: program ?? '복수 · 연계 · 융합전공', credits: 36 }
+    case 'double_major':
+      return { label: '복수전공', credits: 36 }
+    case 'interdisciplinary':
+      return { label: program ?? '연계전공', credits: 36 }
+    case 'minor':
+    case 'minor_1_only':
+    case 'minor_2plus':
+      return { label: '부전공', credits: 18 }
+    default:
+      return null
+  }
+}
+
+/** 이수한 다전공 교과구분(복수 · 부 · 연계 · 융합전공) 학점 */
+export function multiMajorCredits(courses: Course[]) {
+  return courses
+    .filter((c) => c.status === 'completed' && classifyCategory(c.transcript_category, c.course_code) === 'multi')
+    .filter((c) => !/교직/.test(c.transcript_category ?? ''))
+    .reduce((n, c) => n + c.credits, 0)
+}
 
 const PENDING_CREDIT_REASON = 'Credit classification or approval is pending'
 const NOT_COUNTED = new Set(['failed', 'in_progress', 'incomplete', 'duplicate_course'])
@@ -66,7 +97,12 @@ export function classifyByTranscript(e: EvaluationResponse): EvaluationResponse 
   const entries: CreditEntry[] = e.credit_entries.map((entry) => {
     const kind = classifyCategory(entry.transcript_category, entry.course_code)
     // 백엔드 규칙에 없는 다전공 교과구분(예: 부전공)은 학점에서 빠지는데, 교과구분대로 졸업학점에 넣는다
-    if (kind === 'multi' && !NOT_COUNTED.has(entry.reason ?? '') && !entry.counts_toward_total && entry.excluded_credits) {
+    if (
+      kind === 'multi' &&
+      !NOT_COUNTED.has(entry.reason ?? '') &&
+      !entry.counts_toward_total &&
+      entry.excluded_credits
+    ) {
       return {
         ...entry,
         recognized_category: 'general' as const,
@@ -80,7 +116,9 @@ export function classifyByTranscript(e: EvaluationResponse): EvaluationResponse 
       ? { ...entry, recognized_category: KIND_TO_CATEGORY[kind], reason: null }
       : entry
   })
-  const changedTotal = entries.some((x, i) => x !== e.credit_entries[i] && x.counts_toward_total && !e.credit_entries[i].counts_toward_total)
+  const changedTotal = entries.some(
+    (x, i) => x !== e.credit_entries[i] && x.counts_toward_total && !e.credit_entries[i].counts_toward_total,
+  )
   const counted = entries.filter(
     (x) => !NOT_COUNTED.has(x.reason ?? '') && ((x.recognized_credits ?? 0) > 0 || x.counts_toward_total),
   )

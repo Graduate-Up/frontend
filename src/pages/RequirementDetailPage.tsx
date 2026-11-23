@@ -19,6 +19,7 @@ import {
   isNotNeeded,
   ScopeBadge,
   StatusBadge,
+  formatAmount,
   formatCredits,
   ui,
 } from '@/components/ui'
@@ -140,15 +141,15 @@ function Detail({
           {showNumber ? (
             <>
               <p className={styles.big}>
-                {formatCredits(r.current)}
+                {formatAmount(r.current, r.id)}
                 <small>
                   {' '}
-                  / {formatCredits(r.required)}
+                  / {formatAmount(r.required, r.id)}
                   {view.unit}
                 </small>
                 {r.shortfall > 0 && (
                   <em>
-                    {formatCredits(r.shortfall)}
+                    {formatAmount(r.shortfall, r.id)}
                     {view.unit} 부족
                   </em>
                 )}
