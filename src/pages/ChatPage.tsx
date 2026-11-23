@@ -87,7 +87,7 @@ export function ChatPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: '졸업요건 질문' }]}
+        crumbs={[{ label: '챗봇에게 질문하기' }]}
         right={
           messages.length > 0 && (
             <button type="button" className={styles.reset} onClick={() => setMessages([])}>
