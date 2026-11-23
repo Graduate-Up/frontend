@@ -31,7 +31,7 @@ export function AppLayout() {
           {NAV_ITEMS.map((item) => {
             const open = !!item.children && location.pathname.startsWith(item.path)
             return (
-              <div key={item.path} className={styles.navGroup}>
+              <div key={item.path} className={styles.navGroup} data-divider={item.divider || undefined}>
                 <NavLink
                   to={item.path}
                   end={item.path === '/'}

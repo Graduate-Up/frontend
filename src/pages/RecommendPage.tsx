@@ -3,7 +3,7 @@ import { getMyRecommendations, type CareerTag, type CourseRecommendation, type P
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState, Loading, PageIntro, formatCredits, ui } from '@/components/ui'
 import { useCatalog, useEvaluation, useRequirements } from '@/state/queries'
-import { CAREERS, recommend, type Career, type Recommendation } from '@/state/recommend'
+import { CAREERS, careerMatches, isServerCareer, recommend, type Career, type Recommendation } from '@/state/recommend'
 import { useAsync } from '@/state/useAsync'
 import { useProfile, useStudent } from '@/state/useStudent'
 import { programName } from '@/content/programs'
@@ -53,6 +53,35 @@ type View = {
 }
 
 /** 프론트 계산 결과를 백엔드 추천 모양으로 맞춘다 (둘러보기) */
+/**
+ * 서버 추천 순서를 정리한다.
+ * - 프론트엔드 · PM: 서버엔 진로를 안 보냈으니 과목명 키워드가 맞는 과목을 앞으로 (상위 3개도 다시 고른다)
+ * - 내 융합전공 과목은 다른 후보 맨 앞으로
+ */
+function localCareerOrder(
+  recommended: CourseRecommendation[],
+  alternatives: CourseRecommendation[],
+  career: Career,
+  myProgram: string | null,
+) {
+  let top = recommended
+  let rest = alternatives
+  if (!isServerCareer(career) && career !== 'any') {
+    const all = [...recommended, ...alternatives]
+    const ordered = [
+      ...all.filter((r) => careerMatches(career, r.course_name)),
+      ...all.filter((r) => !careerMatches(career, r.course_name)),
+    ]
+    top = ordered.slice(0, recommended.length)
+    rest = ordered.slice(recommended.length)
+  }
+  if (myProgram)
+    rest = [...rest].sort(
+      (a, b) => Number(b.program_ids.includes(myProgram)) - Number(a.program_ids.includes(myProgram)),
+    )
+  return { recommended: top, alternatives: rest }
+}
+
 function toCourseRecommendation(r: Recommendation): CourseRecommendation {
   return {
     course_code: r.course.course_code,
@@ -86,7 +115,8 @@ export function RecommendPage() {
   const catalog = useCatalog(profile)
 
   // 로그인: 서버에 저장된 이수 기록으로 백엔드 추천 (저장 중이면 끝난 뒤에)
-  const careerTag: CareerTag | null = career === 'any' ? null : career
+  // 프론트엔드 · PM은 백엔드 진로 태그가 없어 진로 없이 요청하고, 순서는 과목명 키워드로 다시 정한다
+  const careerTag: CareerTag | null = isServerCareer(career) ? career : null
   const server = useAsync(
     `recs:${careerTag}:${targetSemester}:${JSON.stringify(courses)}:${JSON.stringify(records)}`,
     isAccount && syncStatus !== 'saving'
@@ -107,13 +137,7 @@ export function RecommendPage() {
             .map((m) => `${m.name.replace(/\s*\d+(학점|과목)$/, '')} ${formatCredits(m.amount)}`)
             .join(' · ')
         : null,
-      recommended: d.recommended,
-      // 내 융합전공 과목을 다른 후보 맨 앞으로
-      alternatives: myProgram
-        ? [...d.alternatives].sort(
-            (a, b) => Number(b.program_ids.includes(myProgram)) - Number(a.program_ids.includes(myProgram)),
-          )
-        : d.alternatives,
+      ...localCareerOrder(d.recommended, d.alternatives, career, myProgram),
       programs: myProgram
         ? [...d.programs].sort((a, b) => Number(b.id === myProgram) - Number(a.id === myProgram))
         : d.programs,
@@ -259,7 +283,7 @@ export function RecommendPage() {
                           <td className={ui.code}>{r.course_code}</td>
                           <td>
                             <b>{r.course_name}</b>
-                            {career !== 'any' && r.career_tags.includes(career) && (
+                            {careerMatches(career, r.course_name, r.career_tags) && (
                               <span className={styles.match}>진로 관련</span>
                             )}
                             {myProgram && r.program_ids.includes(myProgram) && (
@@ -357,6 +381,9 @@ function RecommendCard({
           </span>
         ))}
         {myProgram && rec.program_ids.includes(myProgram) && <span className={styles.matchTag}>내 융합전공</span>}
+        {!isServerCareer(career) && careerMatches(career, rec.course_name) && (
+          <span className={styles.matchTag}>{CAREER_LABEL[career]}</span>
+        )}
         {rec.career_tags.map((t) => (
           <span key={t} className={t === career ? styles.matchTag : styles.tagMuted}>
             {CAREER_LABEL[t]}
