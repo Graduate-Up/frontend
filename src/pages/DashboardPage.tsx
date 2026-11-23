@@ -3,7 +3,7 @@ import type { EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { HighlightCard, InfoCard, RoadmapCard } from '@/components/side/GuideCards'
 import { InquiryCard } from '@/components/side/SideCards'
-import { ErrorState, Loading, Pill, StatusBadge, formatCredits, ui } from '@/components/ui'
+import { ErrorState, Loading, Pill, ScopeBadge, StatusBadge, formatCredits, ui } from '@/components/ui'
 import { useEvaluation, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
@@ -155,7 +155,9 @@ function RequirementRow({ view }: { view: RequirementView }) {
   return (
     <Link to={`/requirements/${encodeURIComponent(view.id)}`} className={styles.row}>
       <div className={styles.rowName}>
-        <strong>{view.name}</strong>
+        <strong>
+          <ScopeBadge scope={view.scope} /> {view.name}
+        </strong>
         {view.sub && <span>{view.sub}</span>}
       </div>
       <span className={styles.rowValue}>{view.valueText}</span>

@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import type { CreditEntry, EvaluationResponse, GraduationRule, NonacademicRecord, StudentProfile } from '@/api'
-import { FILL_GUIDES } from '@/content/fillGuides'
+import { FILL_GUIDES, type FillGuide } from '@/content/fillGuides'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EnglishSection } from '@/components/EnglishSection'
 import { LiberalAreaPicker } from '@/components/LiberalAreaPicker'
 import { AUTO_COMPUTED_IDS } from '@/components/NonacademicForm'
 import { InquiryCard, SideCard, SourceCard } from '@/components/side/SideCards'
 import { PRACTICAL_ENGLISH_ID, isEnglishScoreRequirement } from '@/content/englishTests'
-import { appliedSubstitutions, substitutionFor } from '@/content/substitutions'
+import {
+  SUBSTITUTE_METHOD,
+  appliedSubstitutions,
+  chosenSubstitutions,
+  substitutionAmount,
+  substitutionFor,
+  withCourseRecords,
+} from '@/content/substitutions'
 import {
   EmptyState,
   ErrorState,
   Loading,
   ProgressBar,
   RequiredCourseBadge,
+  ScopeBadge,
   StatusBadge,
   formatCredits,
   ui,
@@ -109,12 +117,13 @@ function Detail({
   const [showAllPending, setShowAllPending] = useState(false)
   const split = area ? entriesForArea(area, entries, rule?.major_transcript_categories ?? []) : null
   const pendingCredits = split?.pending.reduce((n, e) => n + (e.recognized_credits || 0), 0) ?? 0
-  const { records } = useStudent()
+  const { courses, records, checkMethods, setCheckMethod } = useStudent()
+  const allRecords = withCourseRecords(courses, records)
+  const chosen = chosenSubstitutions(checkMethods)
   const substitution = substitutionFor(profile.major, view.id)
-  const substitutionApplied = appliedSubstitutions(profile.major, records).has(view.id)
-  const substitutionAmount = substitution
-    ? (records.find((x) => x.requirement_id === substitution.source)?.amount ?? 0)
-    : 0
+  const substitutionChosen = chosen.has(view.id)
+  const substitutionApplied = appliedSubstitutions(profile.major, allRecords, chosen).has(view.id)
+  const substitutionNow = substitution ? substitutionAmount(substitution, allRecords) : 0
   const showNumber = view.group !== 'verification' && !(view.group === 'nonacademic' && r.required === 1 && !view.unit)
 
   return (
@@ -123,6 +132,7 @@ function Detail({
         {/* 요약 */}
         <section className={ui.card}>
           <div className={styles.titleRow}>
+            <ScopeBadge scope={view.scope} />
             <h1 className={styles.title}>{view.name}</h1>
             <StatusBadge status={r.status} notStarted={view.notStarted} />
           </div>
@@ -225,11 +235,9 @@ function Detail({
                 </thead>
                 <tbody>
                   {r.required_courses.map((c) => (
-                    <tr key={c.course_code}>
-                      <td className={ui.code} style={{ color: 'var(--color-text-sub)' }}>
-                        {c.course_code}
-                      </td>
-                      <td style={{ fontWeight: 700 }}>{c.course_name}</td>
+                    <tr key={c.course_code} className={styles.requiredRow} data-status={c.status}>
+                      <td className={ui.code}>{c.course_code}</td>
+                      <td className={styles.requiredName}>{c.course_name}</td>
                       <td style={{ textAlign: 'right' }}>
                         <RequiredCourseBadge status={c.status} />
                       </td>
@@ -263,18 +271,38 @@ function Detail({
             <RecordCard view={view} record={record} onRecord={onRecord} />
           ))}
 
+        {FILL_GUIDES[view.id]?.guide && <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />}
+
         {substitution && (
           <section className={ui.highlight}>
-            <h2>{substitutionApplied ? '대체 인정됐어요' : '대체할 수 있어요'}</h2>
+            <h2>
+              {substitutionApplied
+                ? '대체 인정됐어요'
+                : substitutionChosen
+                  ? '창업 교과목으로 채우는 중'
+                  : '대체할 수 있어요'}
+            </h2>
             <p className={ui.sub} style={{ marginTop: 8, color: 'var(--color-teal-dark)' }}>
               창업 교과목을 {formatCredits(substitution.minimum)}학점 이상 이수하면 {view.name}을(를) 대신 인정받을 수
-              있어요. 지금 입력된 창업 교과목: {formatCredits(substitutionAmount)}학점.
+              있어요. 고르면 창업 교과목 요건도 {formatCredits(substitution.minimum)}학점으로 늘어나요. 지금 창업
+              교과목: {formatCredits(substitutionNow)}학점.
             </p>
-            {!substitutionApplied && (
-              <Link to="/courses?tab=nonacademic" className={ui.textLink} style={{ marginTop: 12 }}>
-                창업 교과목 학점 입력 ›
-              </Link>
-            )}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
+              <button
+                type="button"
+                className={substitutionChosen ? ui.buttonGhost : ui.button}
+                onClick={() => setCheckMethod(view.id, substitutionChosen ? null : SUBSTITUTE_METHOD)}
+              >
+                {substitutionChosen
+                  ? '대체 취소'
+                  : `창업 교과목 ${formatCredits(substitution.minimum)}학점으로 채울게요`}
+              </button>
+              {substitutionChosen && !substitutionApplied && (
+                <Link to="/courses" className={ui.textLink}>
+                  창업 교과목 추가 ›
+                </Link>
+              )}
+            </div>
           </section>
         )}
 
@@ -369,7 +397,7 @@ function HowToFill({ view, pendingCount }: { view: RequirementView; pendingCount
   if (r.status === 'satisfied') return null
 
   const options: {
-    label: '추천' | '대안'
+    label: string
     title: string
     sub: string
     to?: string
@@ -406,8 +434,16 @@ function HowToFill({ view, pendingCount }: { view: RequirementView; pendingCount
       })
   } else {
     const guide = FILL_GUIDES[r.id]
-    // 신청 사이트가 있으면 그것만, 없으면 공지 확인 안내
-    if (guide) options.push({ label: '추천', title: `${guide.title} ↗`, sub: guide.sub, href: guide.url })
+    // 학부 공지의 방법이 있으면 그것만 (하나면 '추천', 여러 개면 '방법 1 · 2 · 3'), 없으면 공지 확인 안내
+    if (guide)
+      guide.options.forEach((o, i) =>
+        options.push({
+          label: guide.options.length > 1 ? `방법 ${i + 1}` : '추천',
+          title: o.url ? `${o.title} ↗` : o.title,
+          sub: o.sub,
+          href: o.url,
+        }),
+      )
     else
       options.push({
         label: '추천',
@@ -534,6 +570,51 @@ function RecordCard({
       <p className={ui.muted} style={{ marginTop: 12 }}>
         입력한 기록은 이 브라우저에만 저장돼요. 증빙은 학부에 따로 제출해야 해요.
       </p>
+    </section>
+  )
+}
+
+/** 학부 공지 기준 자세한 안내 (방법별 인정 기준 · 증빙 · 주의사항) */
+function FillGuideCard({ guide }: { guide: NonNullable<FillGuide['guide']> }) {
+  return (
+    <section className={ui.card}>
+      <div className={ui.cardHead}>
+        <h2 className={ui.cardTitle}>{guide.title}</h2>
+        {guide.submit && <span className={styles.submit}>제출: {guide.submit}</span>}
+      </div>
+      <ol className={styles.guideSections}>
+        {guide.sections.map((s, i) => (
+          <li key={s.title}>
+            <h3>
+              <span>{i + 1}</span>
+              {s.title}
+            </h3>
+            <ul>
+              {s.body.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+            {s.evidence && (
+              <p className={styles.evidence}>
+                <b>증빙</b> {s.evidence}
+              </p>
+            )}
+            {s.notes?.map((n) => (
+              <p key={n} className={styles.guideNote}>
+                ※ {n}
+              </p>
+            ))}
+          </li>
+        ))}
+      </ol>
+      {guide.warning && (
+        <div className={styles.guideWarning}>
+          <b>{guide.warning.title}</b>
+          {guide.warning.body.map((b) => (
+            <p key={b}>{b}</p>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

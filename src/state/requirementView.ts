@@ -23,9 +23,28 @@ export const GROUP_LABEL: Record<RequirementGroup, string> = {
 
 export const GROUP_ORDER: RequirementGroup[] = ['credit', 'course', 'nonacademic', 'verification']
 
+/** 요건을 정한 곳 — 경북대 전체 규정인지, 컴퓨터학부 졸업요건인지 */
+export type RequirementScope = 'university' | 'department'
+
+export const SCOPE_LABEL: Record<RequirementScope, string> = {
+  university: '경북대',
+  department: '컴퓨터학부',
+}
+
+/**
+ * 경북대 전체 규정인 요건 (백엔드 common/graduation_qualification.json · policies.json).
+ * 졸업자격인정제(실용영어 · 소프트웨어 · 지도교수 상담)와 평점평균. 나머지는 컴퓨터학부 졸업요건.
+ */
+const UNIVERSITY_REQUIREMENT_IDS = new Set(['practical-english', 'software', 'counseling', 'gpa'])
+
+export function scopeOf(id: string): RequirementScope {
+  return UNIVERSITY_REQUIREMENT_IDS.has(id) ? 'university' : 'department'
+}
+
 export type RequirementView = {
   id: string
   name: string
+  scope: RequirementScope
   group: RequirementGroup
   result: RequirementResult
   /** 학점 · 과목 · 회 등 */
@@ -60,7 +79,10 @@ export function profileSummary(p: StudentProfile) {
   return parts.join(' · ')
 }
 
-export function buildRequirementViews(rule: GraduationRule | undefined, evaluation: EvaluationResponse): RequirementView[] {
+export function buildRequirementViews(
+  rule: GraduationRule | undefined,
+  evaluation: EvaluationResponse,
+): RequirementView[] {
   const groupOf = new Map<string, RequirementGroup>()
   const unitOf = new Map<string, string>()
   const detailsOf = new Map<string, string[]>()
@@ -101,6 +123,7 @@ export function buildRequirementViews(rule: GraduationRule | undefined, evaluati
     return {
       id: result.id,
       name: result.name,
+      scope: scopeOf(result.id),
       group,
       result,
       unit,
@@ -115,7 +138,8 @@ export function buildRequirementViews(rule: GraduationRule | undefined, evaluati
 
 /** 한 줄 요약 제목 */
 export function headline(evaluation: EvaluationResponse, views: RequirementView[]) {
-  if (evaluation.eligible) return { title: '졸업 요건을 모두 채웠어요', sub: '최종 졸업사정은 학부 사무실에서 확인해요.' }
+  if (evaluation.eligible)
+    return { title: '졸업 요건을 모두 채웠어요', sub: '최종 졸업사정은 학부 사무실에서 확인해요.' }
   const unmet = views.filter((v) => v.result.status === 'unsatisfied')
   const pending = views.filter((v) => v.result.status !== 'unsatisfied' && v.result.status !== 'satisfied')
   const credit = unmet.filter((v) => v.group === 'credit')
@@ -123,7 +147,9 @@ export function headline(evaluation: EvaluationResponse, views: RequirementView[
     const v = credit[0]
     return {
       title: `${v.name.replace(/학점$/, '')} ${formatCredits(v.result.shortfall)}학점만 채우면 돼요`,
-      sub: pending.length ? `확인이 필요한 항목 ${pending.length}개도 함께 챙겨주세요.` : '나머지 요건은 모두 채웠어요.',
+      sub: pending.length
+        ? `확인이 필요한 항목 ${pending.length}개도 함께 챙겨주세요.`
+        : '나머지 요건은 모두 채웠어요.',
     }
   }
   const total = views.find((v) => v.result.credit_area === 'total')
@@ -150,10 +176,13 @@ export function entriesForArea(
   const inArea = (e: CreditEntry) =>
     area === 'total' ? !!e.counts_toward_total : kind(e) === (area === 'major' ? 'major' : 'liberal')
   // 교과구분을 바꾸면 전공으로 인정될 수 있는 과목 (백엔드 major_approval_required)
-  const pending =
-    area === 'major' ? entries.filter((e) => e.major_approval_required && kind(e) !== 'major') : []
+  const pending = area === 'major' ? entries.filter((e) => e.major_approval_required && kind(e) !== 'major') : []
   const recognized = entries.filter(
-    (e) => !pending.includes(e) && (e.recognized_credits ?? 0) > 0 && !e.reason?.match(/failed|in_progress|incomplete/) && inArea(e),
+    (e) =>
+      !pending.includes(e) &&
+      (e.recognized_credits ?? 0) > 0 &&
+      !e.reason?.match(/failed|in_progress|incomplete/) &&
+      inArea(e),
   )
   return { recognized, pending }
 }

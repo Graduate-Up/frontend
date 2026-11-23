@@ -7,6 +7,7 @@ import {
   Loading,
   ProgressBar,
   RequiredCourseBadge,
+  ScopeBadge,
   Sources,
   StatusBadge,
   formatCredits,
@@ -175,6 +176,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
     <article className={styles.item} data-status={view.notStarted ? 'not_started' : r.status}>
       <div className={styles.itemHead}>
         <div className={styles.itemTitle}>
+          <ScopeBadge scope={view.scope} />
           <h3>{view.name}</h3>
           <StatusBadge status={r.status} notStarted={view.notStarted} />
         </div>
@@ -190,7 +192,10 @@ function RequirementItem({ view }: { view: RequirementView }) {
             {view.unit}
           </span>
           <div className={styles.bar}>
-            <ProgressBar value={r.required ? r.current / r.required : 0} tone={r.status === 'unsatisfied' ? 'bad' : undefined} />
+            <ProgressBar
+              value={r.required ? r.current / r.required : 0}
+              tone={r.status === 'unsatisfied' ? 'bad' : undefined}
+            />
           </div>
           <span className={styles.gap} data-done={r.shortfall <= 0}>
             {r.shortfall > 0 ? `${formatCredits(r.shortfall)}${view.unit} 남음` : '채움'}
@@ -207,7 +212,7 @@ function RequirementItem({ view }: { view: RequirementView }) {
       {!!r.required_courses?.length && (
         <ul className={styles.courses}>
           {r.required_courses.map((c) => (
-            <li key={c.course_code}>
+            <li key={c.course_code} data-status={c.status}>
               <RequiredCourseBadge status={c.status} />
               <span className={styles.courseName}>{c.course_name}</span>
               <span className={ui.muted}>{c.course_code}</span>

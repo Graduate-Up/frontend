@@ -211,3 +211,121 @@ a.option:hover {
   font-weight: 700;
   color: var(--color-text);
 }
+
+/* 필수 과목 표 — 이수한 과목은 진하게, 안 들은 과목은 흐리게 */
+.requiredRow td {
+  color: var(--color-text-sub);
+}
+
+.requiredName {
+  font-weight: 600;
+}
+
+.requiredRow[data-status='completed'] td {
+  background: var(--color-teal-soft);
+  color: var(--color-ink);
+}
+
+.requiredRow[data-status='completed'] .requiredName {
+  font-weight: 800;
+}
+
+/* 학부 공지 기준 자세한 안내 */
+.submit {
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--color-navy-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.guideSections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideSections > li {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-surface-muted);
+}
+
+.guideSections > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.guideSections h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.guideSections h3 span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--color-teal-soft);
+  font-size: 12px;
+  color: var(--color-teal-dark);
+}
+
+.guideSections ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.evidence {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.evidence b {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+  font-size: 11px;
+  color: var(--color-text-sub);
+}
+
+.guideNote {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.guideWarning {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #f0c674;
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-warning);
+}
+
+.guideWarning b {
+  margin-bottom: 2px;
+  font-size: 14px;
+  color: var(--color-text);
+}

@@ -29,26 +29,80 @@ export function substitutionFor(major: MajorCode, target: string) {
   return SUBSTITUTIONS.find((s) => s.target === target && s.majors.includes(major))
 }
 
-/** 대체 조건을 채운 요건 id → 적용된 규칙 */
-export function appliedSubstitutions(major: MajorCode, records: NonacademicRecord[]) {
+/** 학생이 대체 인정을 고른 요건 — checkMethods[target] 값 */
+export const SUBSTITUTE_METHOD = 'substitute'
+
+/** 학생이 대체로 채우기로 고른 요건 id */
+export function chosenSubstitutions(checkMethods: Record<string, string>): Set<string> {
+  return new Set(SUBSTITUTIONS.filter((s) => checkMethods[s.target] === SUBSTITUTE_METHOD).map((s) => s.target))
+}
+
+/** 대체 근거 수치 (직접 입력 · 과목 자동 반영 중 큰 값) */
+export function substitutionAmount(s: Substitution, records: NonacademicRecord[]) {
+  return Math.max(0, ...records.filter((r) => r.requirement_id === s.source).map((r) => r.amount))
+}
+
+/** 대체로 채우기로 골랐고 기준을 채운 요건 id → 적용된 규칙 */
+export function appliedSubstitutions(major: MajorCode, records: NonacademicRecord[], chosen: Set<string>) {
   const applied = new Map<string, Substitution>()
   for (const s of SUBSTITUTIONS) {
-    if (!s.majors.includes(major)) continue
-    // 직접 입력 · 과목 자동 반영 중 큰 값
-    const amount = Math.max(0, ...records.filter((r) => r.requirement_id === s.source).map((r) => r.amount))
-    if (amount >= s.minimum) applied.set(s.target, s)
+    if (!s.majors.includes(major) || !chosen.has(s.target)) continue
+    if (substitutionAmount(s, records) >= s.minimum) applied.set(s.target, s)
   }
   return applied
 }
 
 /** 판정 요청에 대체 인정 기록을 덧붙인다 (학생이 직접 입력한 기록이 있으면 그대로 둔다) */
-export function withSubstitutions(major: MajorCode, records: NonacademicRecord[]): NonacademicRecord[] {
+export function withSubstitutions(
+  major: MajorCode,
+  records: NonacademicRecord[],
+  chosen: Set<string>,
+): NonacademicRecord[] {
   const extra: NonacademicRecord[] = []
-  for (const target of appliedSubstitutions(major, records).keys()) {
+  for (const target of appliedSubstitutions(major, records, chosen).keys()) {
     if (!records.some((r) => r.requirement_id === target))
       extra.push({ requirement_id: target, amount: 1, status: 'satisfied' })
   }
   return extra.length ? [...records, ...extra] : records
+}
+
+/**
+ * 대체로 채우기로 골랐으면 판정 결과를 맞춘다.
+ * - 근거 요건(창업 교과목)의 기준을 대체 기준(15학점)으로 올린다
+ * - 아직 기준을 못 채운 대체 대상(스타트업 창업활동)에는 진행 상황을 적는다
+ */
+export function patchSubstitutions(e: EvaluationResponse, major: MajorCode, chosen: Set<string>): EvaluationResponse {
+  const subs = SUBSTITUTIONS.filter((s) => s.majors.includes(major) && chosen.has(s.target))
+  if (!subs.length) return e
+  return {
+    ...e,
+    requirements: e.requirements.map((r) => {
+      const asSource = subs.find((s) => s.source === r.id)
+      if (asSource && r.required < asSource.minimum) {
+        const required = asSource.minimum
+        return {
+          ...r,
+          name: `${r.name.replace(/\s*\d+학점$/, '')} ${required}학점 (스타트업 창업활동 대체)`,
+          required,
+          shortfall: Math.max(0, required - r.current),
+          status: r.current >= required ? 'satisfied' : r.status === 'satisfied' ? 'unsatisfied' : r.status,
+        }
+      }
+      const asTarget = subs.find((s) => s.target === r.id)
+      if (asTarget && r.status !== 'satisfied') {
+        const source = e.requirements.find((x) => x.id === asTarget.source)
+        const now = source?.current ?? 0
+        return {
+          ...r,
+          details: [
+            `${asTarget.label} 중 — 지금 창업 교과목 ${now}학점 / ${asTarget.minimum}학점`,
+            ...(r.details ?? []),
+          ],
+        }
+      }
+      return r
+    }),
+  }
 }
 
 /** 백엔드 현장실습 요건 id (비교과 체크 항목) */

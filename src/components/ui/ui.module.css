@@ -432,3 +432,30 @@
   font-weight: 700;
   color: var(--color-text);
 }
+
+/* 요건을 정한 곳 (경북대 · 컴퓨터학부) */
+.scope {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.scope-university {
+  border-color: #c7b8f5;
+  background: var(--color-check-soft);
+  color: var(--color-check);
+}
+
+.scope-department {
+  border-color: #b9c7ea;
+  background: var(--color-navy-soft);
+  color: var(--color-navy);
+}
