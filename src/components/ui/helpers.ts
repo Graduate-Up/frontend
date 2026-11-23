@@ -20,3 +20,7 @@ export function errorText(error: unknown): string {
 export function formatCredits(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
+
+/** 요건을 이미 채웠는데 아직 안 들은 과목 (예: 종합설계 4과목 중 택1을 채운 뒤 나머지) */
+export const isNotNeeded = (requirementStatus: string, courseStatus: string) =>
+  requirementStatus === 'satisfied' && courseStatus === 'missing'

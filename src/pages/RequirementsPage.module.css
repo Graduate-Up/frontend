@@ -272,3 +272,20 @@
 .item[data-status='not_started'] {
   border-left-color: #b7c0ce;
 }
+
+/* 택1 요건을 채워서 안 들어도 되는 과목 — 회색 + 작은 안내 */
+.courses li[data-status='not_needed'] {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.courses li[data-status='not_needed'] .courseName {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.notNeeded {
+  flex-basis: 100%;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

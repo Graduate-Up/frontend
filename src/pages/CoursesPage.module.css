@@ -113,7 +113,7 @@
 
 /* 과목 목록 아래 '추가할래요' · '새로 입력할래요' — 페이지 제목과 같은 크기 */
 .sectionHeading {
-  margin-top: 24px;
+  margin-top: 4px;
 }
 
 /* 과목 구분 (첨성인기초(글쓰기) · 필수 · SDG 등) */
@@ -132,4 +132,12 @@
   font-weight: 600;
   color: var(--color-text-sub);
   white-space: nowrap;
+}
+
+/* 사이드바 소메뉴로 이동하는 구역 (위 흰 바 높이만큼 띄운다) */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-margin-top: 70px;
 }

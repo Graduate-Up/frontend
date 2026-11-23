@@ -329,3 +329,21 @@ a.option:hover {
   font-size: 14px;
   color: var(--color-text);
 }
+
+.guideIntro {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.requiredRow[data-status='not_needed'] td {
+  color: var(--color-text-muted);
+}
+
+.notNeeded {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

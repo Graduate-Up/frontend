@@ -3,25 +3,20 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import type { CreditEntry, EvaluationResponse, GraduationRule, NonacademicRecord, StudentProfile } from '@/api'
 import { FILL_GUIDES, type FillGuide } from '@/content/fillGuides'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { SubstitutionToggle } from '@/components/SubstitutionToggle'
 import { EnglishSection } from '@/components/EnglishSection'
 import { LiberalAreaPicker } from '@/components/LiberalAreaPicker'
 import { AUTO_COMPUTED_IDS } from '@/components/NonacademicForm'
 import { InquiryCard, SideCard, SourceCard } from '@/components/side/SideCards'
 import { PRACTICAL_ENGLISH_ID, isEnglishScoreRequirement } from '@/content/englishTests'
-import {
-  SUBSTITUTE_METHOD,
-  appliedSubstitutions,
-  chosenSubstitutions,
-  substitutionAmount,
-  substitutionFor,
-  withCourseRecords,
-} from '@/content/substitutions'
+import { chosenSubstitutions, substitutionAmount, substitutionFor, withCourseRecords } from '@/content/substitutions'
 import {
   EmptyState,
   ErrorState,
   Loading,
   ProgressBar,
   RequiredCourseBadge,
+  isNotNeeded,
   ScopeBadge,
   StatusBadge,
   formatCredits,
@@ -117,12 +112,11 @@ function Detail({
   const [showAllPending, setShowAllPending] = useState(false)
   const split = area ? entriesForArea(area, entries, rule?.major_transcript_categories ?? []) : null
   const pendingCredits = split?.pending.reduce((n, e) => n + (e.recognized_credits || 0), 0) ?? 0
-  const { courses, records, checkMethods, setCheckMethod } = useStudent()
+  const { courses, records, checkMethods } = useStudent()
   const allRecords = withCourseRecords(courses, records)
   const chosen = chosenSubstitutions(checkMethods)
   const substitution = substitutionFor(profile.major, view.id)
   const substitutionChosen = chosen.has(view.id)
-  const substitutionApplied = appliedSubstitutions(profile.major, allRecords, chosen).has(view.id)
   const substitutionNow = substitution ? substitutionAmount(substitution, allRecords) : 0
   const showNumber = view.group !== 'verification' && !(view.group === 'nonacademic' && r.required === 1 && !view.unit)
 
@@ -134,7 +128,7 @@ function Detail({
           <div className={styles.titleRow}>
             <ScopeBadge scope={view.scope} />
             <h1 className={styles.title}>{view.name}</h1>
-            <StatusBadge status={r.status} notStarted={view.notStarted} />
+            <StatusBadge status={r.status} notStarted={view.notStarted} notApplicable={r.not_applicable} />
           </div>
           {showNumber ? (
             <>
@@ -235,11 +229,18 @@ function Detail({
                 </thead>
                 <tbody>
                   {r.required_courses.map((c) => (
-                    <tr key={c.course_code} className={styles.requiredRow} data-status={c.status}>
+                    <tr
+                      key={c.course_code}
+                      className={styles.requiredRow}
+                      data-status={isNotNeeded(r.status, c.status) ? 'not_needed' : c.status}
+                    >
                       <td className={ui.code}>{c.course_code}</td>
                       <td className={styles.requiredName}>{c.course_name}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <RequiredCourseBadge status={c.status} />
+                        <RequiredCourseBadge status={c.status} notNeeded={isNotNeeded(r.status, c.status)} />
+                        {isNotNeeded(r.status, c.status) && (
+                          <small className={styles.notNeeded}>채울 필요 없어요.</small>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -271,33 +272,21 @@ function Detail({
             <RecordCard view={view} record={record} onRecord={onRecord} />
           ))}
 
-        {FILL_GUIDES[view.id]?.guide && <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />}
+        {FILL_GUIDES[view.id]?.guide && FILL_GUIDES[view.id].guide!.placement !== 'side' && (
+          <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />
+        )}
 
         {substitution && (
           <section className={ui.highlight}>
-            <h2>
-              {substitutionApplied
-                ? '대체 인정됐어요'
-                : substitutionChosen
-                  ? '창업 교과목으로 채우는 중'
-                  : '대체할 수 있어요'}
-            </h2>
+            <h2>{substitutionChosen ? '창업 교과목 15학점으로 대체했어요' : '대체할 수 있어요'}</h2>
             <p className={ui.sub} style={{ marginTop: 8, color: 'var(--color-teal-dark)' }}>
-              창업 교과목을 {formatCredits(substitution.minimum)}학점 이상 이수하면 {view.name}을(를) 대신 인정받을 수
-              있어요. 고르면 창업 교과목 요건도 {formatCredits(substitution.minimum)}학점으로 늘어나요. 지금 창업
-              교과목: {formatCredits(substitutionNow)}학점.
+              {substitutionChosen
+                ? `${view.name}은(는) 미해당으로 처리하고, 창업 교과목 요건(${formatCredits(substitution.minimum)}학점)에서 판정해요. 지금 창업 교과목: ${formatCredits(substitutionNow)}학점.`
+                : `창업 교과목을 ${formatCredits(substitution.minimum)}학점 이상 이수해서 ${view.name}을(를) 대신할 수 있어요. 고르면 이 요건은 미해당이 되고, 창업 교과목 요건이 ${formatCredits(substitution.minimum)}학점(추가 ${formatCredits(substitution.extra)}학점)으로 늘어나요. 지금 창업 교과목: ${formatCredits(substitutionNow)}학점.`}
             </p>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
-              <button
-                type="button"
-                className={substitutionChosen ? ui.buttonGhost : ui.button}
-                onClick={() => setCheckMethod(view.id, substitutionChosen ? null : SUBSTITUTE_METHOD)}
-              >
-                {substitutionChosen
-                  ? '대체 취소'
-                  : `창업 교과목 ${formatCredits(substitution.minimum)}학점으로 채울게요`}
-              </button>
-              {substitutionChosen && !substitutionApplied && (
+              <SubstitutionToggle targetId={view.id} />
+              {substitutionChosen && substitutionNow < substitution.minimum && (
                 <Link to="/courses" className={ui.textLink}>
                   창업 교과목 추가 ›
                 </Link>
@@ -322,6 +311,7 @@ function Detail({
       <div className={ui.stack}>
         <SourceCard sources={sortSourcesForMajor(view.sources, profile.major)} />
         <HowToFill view={view} pendingCount={split?.pending.length ?? 0} />
+        {FILL_GUIDES[view.id]?.guide?.placement === 'side' && <FillGuideCard guide={FILL_GUIDES[view.id].guide!} />}
         <InquiryCard
           profile={profile}
           studentNumber={studentNumber}
@@ -438,7 +428,7 @@ function HowToFill({ view, pendingCount }: { view: RequirementView; pendingCount
     if (guide)
       guide.options.forEach((o, i) =>
         options.push({
-          label: guide.options.length > 1 ? `방법 ${i + 1}` : '추천',
+          label: o.mark ?? (guide.options.length > 1 ? `방법 ${i + 1}` : '추천'),
           title: o.url ? `${o.title} ↗` : o.title,
           sub: o.sub,
           href: o.url,
@@ -522,7 +512,11 @@ function RecordCard({
         <h2 className={ui.cardTitle}>내 기록</h2>
         {record && <span className={ui.muted}>판정에 반영 중</span>}
       </div>
-      {isCheck ? (
+      {r.not_applicable ? (
+        <div className={styles.recordRow}>
+          <p className={ui.sub}>✓ 대체를 골라서 확인 완료로 처리했어요. 따로 표시하지 않아도 돼요.</p>
+        </div>
+      ) : isCheck ? (
         <div className={styles.recordRow}>
           <p className={ui.sub}>{record ? '취득 · 확인 완료로 표시했어요.' : '아직 표시하지 않았어요.'}</p>
           {record ? (
@@ -582,11 +576,16 @@ function FillGuideCard({ guide }: { guide: NonNullable<FillGuide['guide']> }) {
         <h2 className={ui.cardTitle}>{guide.title}</h2>
         {guide.submit && <span className={styles.submit}>제출: {guide.submit}</span>}
       </div>
+      {guide.intro?.map((t) => (
+        <p key={t} className={styles.guideIntro}>
+          {t}
+        </p>
+      ))}
       <ol className={styles.guideSections}>
         {guide.sections.map((s, i) => (
           <li key={s.title}>
             <h3>
-              <span>{i + 1}</span>
+              <span>{s.mark ?? i + 1}</span>
               {s.title}
             </h3>
             <ul>

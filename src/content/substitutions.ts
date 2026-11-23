@@ -12,7 +12,11 @@ export type Substitution = {
   /** 대체 근거가 되는 요건 id와 필요한 수치 */
   source: string
   minimum: number
+  /** 근거 요건 기준에서 더 들어야 하는 양 (예: 창업 교과목 9학점 + 추가 6학점) */
+  extra: number
   label: string
+  /** 대체를 고르는 버튼 문구 */
+  action: string
 }
 
 export const SUBSTITUTIONS: Substitution[] = [
@@ -21,7 +25,9 @@ export const SUBSTITUTIONS: Substitution[] = [
     target: 'track-startup_activity',
     source: 'track-startup_credits',
     minimum: 15,
+    extra: 6,
     label: '창업 교과목 15학점 이수로 대체',
+    action: '창업 교과목 15학점으로 대체 (추가 6학점)',
   },
 ]
 
@@ -42,12 +48,14 @@ export function substitutionAmount(s: Substitution, records: NonacademicRecord[]
   return Math.max(0, ...records.filter((r) => r.requirement_id === s.source).map((r) => r.amount))
 }
 
-/** 대체로 채우기로 골랐고 기준을 채운 요건 id → 적용된 규칙 */
-export function appliedSubstitutions(major: MajorCode, records: NonacademicRecord[], chosen: Set<string>) {
+/**
+ * 대체로 넘긴 요건 id → 적용된 규칙.
+ * 고르면 바로 적용한다 — 대상(스타트업 창업활동)은 미해당이 되고, 근거 요건(창업 교과목)이 15학점으로 늘어나 거기서 판정한다.
+ */
+export function appliedSubstitutions(major: MajorCode, chosen: Set<string>) {
   const applied = new Map<string, Substitution>()
   for (const s of SUBSTITUTIONS) {
-    if (!s.majors.includes(major) || !chosen.has(s.target)) continue
-    if (substitutionAmount(s, records) >= s.minimum) applied.set(s.target, s)
+    if (s.majors.includes(major) && chosen.has(s.target)) applied.set(s.target, s)
   }
   return applied
 }
@@ -59,7 +67,7 @@ export function withSubstitutions(
   chosen: Set<string>,
 ): NonacademicRecord[] {
   const extra: NonacademicRecord[] = []
-  for (const target of appliedSubstitutions(major, records, chosen).keys()) {
+  for (const target of appliedSubstitutions(major, chosen).keys()) {
     if (!records.some((r) => r.requirement_id === target))
       extra.push({ requirement_id: target, amount: 1, status: 'satisfied' })
   }
@@ -89,14 +97,17 @@ export function patchSubstitutions(e: EvaluationResponse, major: MajorCode, chos
         }
       }
       const asTarget = subs.find((s) => s.target === r.id)
-      if (asTarget && r.status !== 'satisfied') {
+      if (asTarget) {
+        // 근거 요건은 이 함수에서 15학점으로 바뀌므로 원래 이름 대신 대체 기준으로 적는다
         const source = e.requirements.find((x) => x.id === asTarget.source)
-        const now = source?.current ?? 0
         return {
           ...r,
+          status: 'satisfied',
+          not_applicable: true,
+          current: r.required,
+          shortfall: 0,
           details: [
-            `${asTarget.label} 중 — 지금 창업 교과목 ${now}학점 / ${asTarget.minimum}학점`,
-            ...(r.details ?? []),
+            `${asTarget.label} — 창업 교과목 ${asTarget.minimum}학점 요건에서 판정해요 (지금 ${source?.current ?? 0}학점)`,
           ],
         }
       }

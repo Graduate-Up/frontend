@@ -22,8 +22,20 @@ export function Pill({ tone = 'neutral', children }: { tone?: Tone; children: Re
   return <span className={`${styles.pill} ${styles[`tone-${tone}`]}`}>{children}</span>
 }
 
-/** notStarted: 아직 아무것도 채우지 않은 항목은 '진행 전'으로 보여준다 */
-export function StatusBadge({ status, notStarted = false }: { status: JudgementStatus; notStarted?: boolean }) {
+/**
+ * notStarted: 아직 아무것도 채우지 않은 항목은 '진행 전'으로 보여준다
+ * notApplicable: 다른 요건으로 대체해서 해당 없는 항목은 회색 '미해당'
+ */
+export function StatusBadge({
+  status,
+  notStarted = false,
+  notApplicable = false,
+}: {
+  status: JudgementStatus
+  notStarted?: boolean
+  notApplicable?: boolean
+}) {
+  if (notApplicable) return <Pill tone="neutral">미해당</Pill>
   if (status === 'unsatisfied' && notStarted) return <Pill tone="neutral">진행 전</Pill>
   return <Pill tone={JUDGEMENT_TONE[status]}>{JUDGEMENT_LABEL[status]}</Pill>
 }
@@ -36,8 +48,15 @@ const REQUIRED_TONE: Record<RequiredCourseResult['status'], Tone> = {
   verification_required: 'check',
 }
 
-export function RequiredCourseBadge({ status }: { status: RequiredCourseResult['status'] }) {
-  return <Pill tone={REQUIRED_TONE[status]}>{REQUIRED_COURSE_LABEL[status]}</Pill>
+/** notNeeded: 택1 요건을 이미 채워서 안 들어도 되는 과목 — 회색으로 */
+export function RequiredCourseBadge({
+  status,
+  notNeeded = false,
+}: {
+  status: RequiredCourseResult['status']
+  notNeeded?: boolean
+}) {
+  return <Pill tone={notNeeded ? 'neutral' : REQUIRED_TONE[status]}>{REQUIRED_COURSE_LABEL[status]}</Pill>
 }
 
 export function ProgressBar({ value, tone }: { value: number; tone?: 'bad' }) {

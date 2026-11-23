@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { formatGraduation } from '@/constants/labels'
 import { NAV_ITEMS } from '@/routes/nav'
@@ -10,6 +10,7 @@ import styles from './AppLayout.module.css'
 
 export function AppLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { kind, displayName, profile, signOut, courses } = useStudent()
 
   if (kind === 'loading') return null
@@ -27,17 +28,42 @@ export function AppLayout() {
         </div>
 
         <nav className={styles.nav}>
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
-            >
-              {item.path === '/courses' ? (courses.length ? '이수 내역 확인/수정' : '이수 내역 입력하기') : item.label}
-              {item.count === 'hidden-credits' && <HiddenCreditCount className={styles.badge} />}
-            </NavLink>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const open = !!item.children && location.pathname.startsWith(item.path)
+            return (
+              <div key={item.path} className={styles.navGroup}>
+                <NavLink
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+                >
+                  {item.path === '/courses'
+                    ? courses.length
+                      ? '이수 내역 확인/수정'
+                      : '이수 내역 입력하기'
+                    : item.label}
+                  {item.count === 'hidden-credits' && <HiddenCreditCount className={styles.badge} />}
+                </NavLink>
+                {open && (
+                  <div className={styles.subNav}>
+                    {item.children!.map((c) => (
+                      <Link
+                        key={c.hash}
+                        to={`${item.path}#${c.hash}`}
+                        className={`${styles.subLink} ${location.hash === `#${c.hash}` ? styles.subActive : ''}`}
+                        // 이미 같은 위치면 주소가 안 바뀌어서 직접 스크롤한다
+                        onClick={() =>
+                          setTimeout(() => document.getElementById(c.hash)?.scrollIntoView({ behavior: 'smooth' }), 0)
+                        }
+                      >
+                        {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         <div className={styles.profile}>
