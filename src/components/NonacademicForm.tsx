@@ -12,7 +12,7 @@ import type {
 import { SubstitutionToggle } from '@/components/SubstitutionToggle'
 import { EnglishSection } from '@/components/EnglishSection'
 import { LiberalAreaPicker } from '@/components/LiberalAreaPicker'
-import { StatusBadge, formatCredits, ui } from '@/components/ui'
+import { StatusBadge, formatAmount, formatCredits, ui } from '@/components/ui'
 import {
   FIELD_PRACTICE_ID,
   STARTUP_CREDITS_ID,
@@ -181,7 +181,7 @@ export function NonacademicForm({
                   <RowInfo req={req} status={result?.status} />
                   <span className={styles.autoValue}>
                     {result
-                      ? `${formatCredits(result.current)} / ${formatCredits(result.required)}${req.id === 'gpa' ? '' : '학점'}`
+                      ? `${formatAmount(result.current, req.id)} / ${formatAmount(result.required, req.id)}${req.id === 'gpa' ? '' : '학점'}`
                       : '-'}
                   </span>
                   {result && result.status !== 'satisfied' && (

@@ -8,7 +8,7 @@ import type {
   StudentProfile,
 } from '@/api'
 import { MULTI_MAJOR_LABEL, formatGraduation, reasonText } from '@/constants/labels'
-import { formatCredits } from '@/components/ui/helpers'
+import { formatAmount, formatCredits } from '@/components/ui/helpers'
 import { MAJOR_LABEL } from '@/types/student'
 import { classifyCategory } from './courseCategory'
 
@@ -130,7 +130,7 @@ export function buildRequirementViews(
     else if (later) valueText = '졸업 학기에 진행'
     else if (group === 'nonacademic' && result.required === 1 && !unit)
       valueText = result.status === 'satisfied' ? '확인 완료' : '미제출'
-    else valueText = `${formatCredits(result.current)} / ${formatCredits(result.required)}${unit}`
+    else valueText = `${formatAmount(result.current, result.id)} / ${formatAmount(result.required, result.id)}${unit}`
 
     let sub: string
     if (group === 'course' && result.required_courses?.length) {

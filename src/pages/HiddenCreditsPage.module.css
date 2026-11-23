@@ -169,3 +169,62 @@
 .clearCard[data-info] b span {
   color: var(--color-warning);
 }
+
+/* 재이수 추천 — 신청으로 살리는 카드(청록)와 구분해 남색 */
+.retake {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 26px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.retakeTag {
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--color-navy-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.retakeResult {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-navy);
+}
+
+.grade {
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.grade[data-failed] {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.reason {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.gain {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-navy);
+}
+
+.retakeNote {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}

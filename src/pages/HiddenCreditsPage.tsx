@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { CategoryBadge, ErrorState, Loading, PageIntro, Sources, formatCredits, ui } from '@/components/ui'
 import { hiddenCreditChecks, type HiddenCheck } from '@/state/hiddenCredits'
+import { retakeCandidates, type RetakeSummary } from '@/state/retake'
 import { useEvaluation, useGraduationSchedule, useRequirements } from '@/state/queries'
 import { useProfile, useStudent } from '@/state/useStudent'
 import styles from './HiddenCreditsPage.module.css'
@@ -38,6 +39,7 @@ export function HiddenCreditsPage() {
             {found.map((c) => (
               <FoundCard key={c.id} check={c} />
             ))}
+            <RetakeCard summary={retakeCandidates(courses, rule.data)} />
             {info.length > 0 && (
               <>
                 <h2 className={styles.clearTitle}>참고</h2>
@@ -131,6 +133,55 @@ function FoundCard({ check }: { check: HiddenCheck }) {
           </Link>
         )}
       </div>
+    </section>
+  )
+}
+
+const gpaText = (v: number | null) => (v == null ? '-' : v.toFixed(2))
+
+/** 재이수하면 좋을 과목 — 신청만으로는 못 살리지만 다시 들으면 학점 · 평점이 오르는 과목 */
+function RetakeCard({ summary }: { summary: RetakeSummary }) {
+  const { candidates, gpa, gpaIfAll, assumedGrade } = summary
+  if (!candidates.length) return null
+  const failedCredits = candidates.filter((c) => c.failed).reduce((n, c) => n + c.credits, 0)
+  return (
+    <section className={styles.retake}>
+      <div className={styles.head}>
+        <div className={styles.titleRow}>
+          <span className={styles.retakeTag}>재이수 추천 · {candidates.length}과목</span>
+          <h2>다시 들으면 좋은 과목</h2>
+        </div>
+        {gpa != null && gpaIfAll != null && (
+          <span className={styles.retakeResult}>
+            평점 {gpaText(gpa)} → 최대 {gpaText(gpaIfAll)}
+          </span>
+        )}
+      </div>
+      <p className={styles.body}>
+        재이수할 수 있는 B- 이하 과목이에요. 재이수하면 <b>마지막 성적만</b> 남아요
+        {failedCredits > 0 && `. F 과목을 다시 들어 통과하면 ${formatCredits(failedCredits)}학점이 더 생겨요`}. 평점은
+        각 과목을 재이수 성적 상한인 {assumedGrade}로 받는다고 가정해 계산했어요.
+      </p>
+      <ul className={styles.courses}>
+        {candidates.map((c) => (
+          <li key={`${c.code}@${c.semester}`}>
+            <b>{c.name}</b>
+            <span className={ui.muted}>
+              {c.code} · {formatCredits(c.credits)}학점 · {c.semester}
+            </span>
+            <CategoryBadge category={c.category} code={c.code} />
+            <span className={styles.grade} data-failed={c.failed || undefined}>
+              {c.grade}
+            </span>
+            {c.failed && <span className={styles.reason}>+{formatCredits(c.credits)}학점</span>}
+            {c.required && <span className={styles.reason}>필수과목</span>}
+            <span className={styles.gain}>평점 +{c.gpaGain.toFixed(2)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className={styles.retakeNote}>
+        폐지된 과목은 동일과목으로 재이수할 수 있으니 수강 신청 전에 학부 사무실에 확인하세요.
+      </p>
     </section>
   )
 }

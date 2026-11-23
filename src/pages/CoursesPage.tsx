@@ -9,7 +9,7 @@ import { TranscriptImport } from '@/components/courses/TranscriptImport'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Badge, CategoryBadge, EmptyState, ErrorState, PageIntro, formatCredits, ui } from '@/components/ui'
 import { COURSE_STATUS_OPTIONS } from '@/constants/labels'
-import { KIND_LABEL, KIND_ORDER, classifyCategory, isStartupCourse } from '@/state/courseCategory'
+import { KIND_LABEL, KIND_ORDER, classifyCategory, isStartupCourse, multiMajorTarget } from '@/state/courseCategory'
 import { GRADES, SEMESTER_PATTERN, normalizeGrade, normalizeSemester, semesterLabel } from '@/state/courses'
 import {
   courseNameMap,
@@ -17,6 +17,7 @@ import {
   useCatalog,
   useEvaluation,
   useMyProgram,
+  useMyProgramName,
   useRequirements,
 } from '@/state/queries'
 import { useProfile, useStudent } from '@/state/useStudent'
@@ -39,6 +40,7 @@ export function CoursesPage() {
   const catalog = useCatalog(profile)
   // 학적에서 고른 융합전공 — 성적표에 일반선택으로 찍혀도 그 전공 과목이면 표시한다
   const myProgram = useMyProgram()
+  const programLabel = useMyProgramName()
   const evaluation = useEvaluation(profile, courses, records)
 
   // 사이드바 소메뉴(#course-list 등)로 들어오면 그 구역으로 스크롤
@@ -74,7 +76,8 @@ export function CoursesPage() {
   const completed = courses.filter((c) => c.status === 'completed')
   const totalCredits = completed.reduce((sum, c) => sum + c.credits, 0)
   // 이수한 과목 중 내 융합전공 과목 학점 (성적표 교과구분과 상관없이)
-  const programCredits = completed.filter((c) => myProgram.codes.has(c.course_code)).reduce((n, c) => n + c.credits, 0)
+  // 다전공 목표 학점 (복수 · 연계 · 융합 36, 부전공 18) — 다전공 교과구분 학점과 함께 분홍으로 표시
+  const multiTarget = multiMajorTarget(profile.multi_major, programLabel)
   // 성적표 교과구분 기준 학점 합계
   const byKind = KIND_ORDER.map((kind) => ({
     kind,
@@ -85,15 +88,6 @@ export function CoursesPage() {
   const gpaReady = courses.filter((c) => c.grade).length
   // 내 융합전공 과목인데 성적표에 일반선택으로 잡힌 과목 — 교과구분 변경 신청을 해야 융합전공 학점이 된다
   const isProgramGeneral = (c: Course) => myProgram.codes.has(c.course_code) && c.transcript_category === '일반선택'
-  const programGeneral = courses.filter(isProgramGeneral)
-
-  function changeToProgram(c: Course) {
-    const ok = window.confirm(
-      `${c.course_name || names.get(c.course_code) || c.course_code}의 교과구분을 융합전공으로 바꿀까요?\n\n` +
-        '학교에 교과구분 변경 신청을 한 과목만 바꿔 주세요. 신청하지 않았다면 성적표에는 그대로 일반선택이에요.',
-    )
-    if (ok) updateCourse(c, { transcript_category: PROGRAM_CATEGORY })
-  }
 
   const courseList = (
     <>
@@ -108,28 +102,24 @@ export function CoursesPage() {
           {byKind.map((k) => (
             <span key={k.kind} className={styles.kindItem} data-kind={k.kind}>
               <i />
-              {KIND_LABEL[k.kind]} <b>{formatCredits(k.credits)}</b>학점
+              {k.kind === 'multi' && multiTarget ? (
+                <>
+                  {multiTarget.label} <b>{formatCredits(k.credits)}</b> / {multiTarget.credits}학점
+                </>
+              ) : (
+                <>
+                  {KIND_LABEL[k.kind]} <b>{formatCredits(k.credits)}</b>학점
+                </>
+              )}
             </span>
           ))}
-          {myProgram.program && (
-            <span className={styles.kindItem} data-kind="program">
+          {multiTarget && !byKind.some((k) => k.kind === 'multi') && (
+            <span className={styles.kindItem} data-kind="multi">
               <i />
-              {myProgram.program.name} 과목 <b>{formatCredits(programCredits)}</b>학점
+              {multiTarget.label} <b>0</b> / {multiTarget.credits}학점
             </span>
           )}
         </div>
-        {programGeneral.length > 0 && (
-          <div className={styles.programNotice}>
-            <strong>
-              {myProgram.program?.name} 과목 {programGeneral.length}개가 일반선택으로 잡혀 있어요
-            </strong>
-            <p>
-              {programGeneral.map((c) => c.course_name || names.get(c.course_code) || c.course_code).join(' · ')} —
-              학교에 <b>교과구분 변경 신청</b>을 하면 융합전공 학점으로 인정돼요. 신청했다면 아래 과목의{' '}
-              <b>융합전공으로 변경</b>을 눌러 주세요.
-            </p>
-          </div>
-        )}
         {evaluation.status === 'error' && (
           <div style={{ marginTop: 12 }}>
             <ErrorState error={evaluation.error} />
@@ -165,7 +155,14 @@ export function CoursesPage() {
                       <tr key={`${c.course_code}@${c.semester}`}>
                         <td style={{ whiteSpace: 'nowrap' }}>{semesterLabel(c.semester)}</td>
                         <td>
-                          <div style={{ fontWeight: 700 }}>{name ?? c.course_code}</div>
+                          <div style={{ fontWeight: 700 }}>
+                            {name ?? c.course_code}
+                            {myProgram.codes.has(c.course_code) && (
+                              <span className={styles.programDot} title={myProgram.program?.name}>
+                                <i />내 융합전공
+                              </span>
+                            )}
+                          </div>
                           <div className={ui.muted}>
                             {[
                               name ? c.course_code : null,
@@ -175,6 +172,28 @@ export function CoursesPage() {
                               .filter(Boolean)
                               .join(' · ')}
                           </div>
+                          {isProgramGeneral(c) && (
+                            <div className={styles.programHint}>
+                              <p>융합전공 과목에 해당해요. 교과구분 변경 신청을 하셨다면 교과구분을 변경해 주세요.</p>
+                              <button
+                                type="button"
+                                onClick={() => updateCourse(c, { transcript_category: PROGRAM_CATEGORY })}
+                              >
+                                변경하기
+                              </button>
+                            </div>
+                          )}
+                          {myProgram.codes.has(c.course_code) && c.transcript_category === PROGRAM_CATEGORY && (
+                            <div className={styles.programHint}>
+                              <button
+                                type="button"
+                                data-undo
+                                onClick={() => updateCourse(c, { transcript_category: '일반선택' })}
+                              >
+                                일반선택으로 되돌리기
+                              </button>
+                            </div>
+                          )}
                           <CourseAreas
                             areas={entries.find((e) => sameCourse(e, c))?.course_areas}
                             category={c.transcript_category}
@@ -193,30 +212,6 @@ export function CoursesPage() {
                         <td>{formatCredits(c.credits)}</td>
                         <td>
                           <CategoryBadge category={c.transcript_category} code={c.course_code} />
-                          {myProgram.codes.has(c.course_code) && (
-                            <span className={styles.programTag} title={myProgram.program?.name}>
-                              내 융합전공
-                            </span>
-                          )}
-                          {isProgramGeneral(c) && (
-                            <button
-                              type="button"
-                              className={styles.programFix}
-                              title="교과구분 변경 신청을 했다면 눌러 주세요"
-                              onClick={() => changeToProgram(c)}
-                            >
-                              신청했어요 · 융합전공으로 변경
-                            </button>
-                          )}
-                          {myProgram.codes.has(c.course_code) && c.transcript_category === PROGRAM_CATEGORY && (
-                            <button
-                              type="button"
-                              className={styles.programUndo}
-                              onClick={() => updateCourse(c, { transcript_category: '일반선택' })}
-                            >
-                              일반선택으로 되돌리기
-                            </button>
-                          )}
                         </td>
                         <td>
                           <select
