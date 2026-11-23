@@ -31,6 +31,8 @@ export type RetakeCandidate = {
   category: string
   required: boolean
   failed: boolean
+  /** 직전 학기(계절 포함)에 들은 과목 — 바로 다음 학기엔 재수강할 수 없다 */
+  lastTerm: boolean
   /** 상한 성적(A-)을 받으면 오르는 평점 */
   gpaGain: number
 }
@@ -41,6 +43,15 @@ export type RetakeSummary = {
   gpaIfAll: number | null
   candidates: RetakeCandidate[]
   assumedGrade: string
+  /** 직전 학기 (예: 2025-summer) */
+  lastSemester: string | null
+}
+
+/** 학기 순서 — 1학기 → 여름계절 → 2학기 → 겨울계절 */
+const TERM_ORDER: Record<string, number> = { '1': 1, summer: 2, '2': 3, winter: 4 }
+const semesterKey = (s: string) => {
+  const [year, term] = s.split('-')
+  return Number(year) * 10 + (TERM_ORDER[term] ?? 0)
 }
 
 /** 같은 과목코드는 마지막 학기 성적만 남긴다 (재이수 = 마지막 성적) */
@@ -49,7 +60,7 @@ function latestGraded(courses: Course[]) {
   for (const c of courses) {
     if (!c.grade || !(c.grade in POINTS)) continue
     const prev = byCode.get(c.course_code)
-    if (!prev || prev.semester < c.semester) byCode.set(c.course_code, c)
+    if (!prev || semesterKey(prev.semester) < semesterKey(c.semester)) byCode.set(c.course_code, c)
   }
   return [...byCode.values()]
 }
@@ -65,6 +76,11 @@ export function retakeCandidates(courses: Course[], rule: GraduationRule | undef
   const graded = latestGraded(courses).map((c) => ({ course: c, credits: c.credits, point: POINTS[c.grade!] }))
   const gpa = gpaOf(graded)
   const assumed = POINTS[ASSUMED_GRADE]
+  // 가장 최근에 들은 학기(수강 중 포함, 계절 포함) = 다음 수강신청 기준 직전 학기
+  const lastSemester = courses.reduce<string | null>(
+    (last, c) => (!last || semesterKey(c.semester) > semesterKey(last) ? c.semester : last),
+    null,
+  )
 
   const candidates = graded
     .filter((g) => g.point <= RETAKE_MAX_POINT && g.course.status !== 'in_progress')
@@ -79,15 +95,20 @@ export function retakeCandidates(courses: Course[], rule: GraduationRule | undef
         category: c.transcript_category,
         required: required.has(c.course_code),
         failed: point === 0,
+        lastTerm: c.semester === lastSemester,
         gpaGain: after != null && gpa != null ? after - gpa : 0,
       }
     })
-    // F(학점 0) → 필수과목 → 평점 상승 폭 순
+    // 다음 학기에 바로 들을 수 있는 과목 먼저, 그 안에서 F(학점 0) → 필수과목 → 평점 상승 폭 순
     .sort(
-      (a, b) => Number(b.failed) - Number(a.failed) || Number(b.required) - Number(a.required) || b.gpaGain - a.gpaGain,
+      (a, b) =>
+        Number(a.lastTerm) - Number(b.lastTerm) ||
+        Number(b.failed) - Number(a.failed) ||
+        Number(b.required) - Number(a.required) ||
+        b.gpaGain - a.gpaGain,
     )
 
   const codes = new Set(candidates.map((c) => c.code))
   const gpaIfAll = gpaOf(graded.map((g) => (codes.has(g.course.course_code) ? { ...g, point: assumed } : g)))
-  return { gpa, gpaIfAll, candidates, assumedGrade: ASSUMED_GRADE }
+  return { gpa, gpaIfAll, candidates, assumedGrade: ASSUMED_GRADE, lastSemester }
 }

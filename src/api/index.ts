@@ -12,6 +12,7 @@ import type {
   GraduationSchedule,
   ProgramSummary,
   RecommendationRequest,
+  GraduationAnswer,
   Recommendations,
   MajorCode,
   MajorsResponse,
@@ -143,6 +144,11 @@ export function getMyRecords(opts?: Opts) {
 /** 서버에 저장된 이수 기록으로 과목 추천 (진로 · AI 순서 선택) */
 export function getMyRecommendations(body: RecommendationRequest, opts?: Opts) {
   return request<Recommendations>(`${V1}/me/recommendations`, { method: 'POST', body, auth: true, ...opts })
+}
+
+/** 졸업요건 챗봇 — 409: 학생 설정 필요, 503: AI 답변 일시 불가 */
+export function askGraduationChat(question: string) {
+  return request<GraduationAnswer>(`${V1}/me/graduation-chat`, { method: 'POST', body: { question }, auth: true })
 }
 
 export function saveMyRecords(records: StudentRecords) {
