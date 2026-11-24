@@ -83,6 +83,14 @@ export function courseNameMap(rule: GraduationRule | undefined): Map<string, str
   return map
 }
 
+/** 필수과목마다 대신 인정되는 과목코드 (백엔드 course_requirements[].courses[].substitutes) */
+export function substitutesMap(rule: GraduationRule | undefined): Map<string, string[]> {
+  const map = new Map<string, string[]>()
+  for (const req of rule?.course_requirements ?? [])
+    for (const c of req.courses) if (c.substitutes?.length) map.set(c.course_code, c.substitutes)
+  return map
+}
+
 /** 성적표 교과구분 후보 */
 export function transcriptCategoryOptions(rule: GraduationRule | undefined): string[] {
   const set = new Set<string>([
@@ -126,8 +134,18 @@ export function useCatalog(profile: StudentProfile) {
 }
 
 /** 교육과정표 교과구분으로 컴퓨터학부 개설 여부를 정한다 (교양 · 일반선택은 판정에 상관없어 비워둔다) */
+/** 컴퓨터학부 글솝 교육과정에 있는 COMP 이외의 과목 (백엔드 CSE_ADDITIONAL_CODES와 같게) */
+const CSE_ADDITIONAL_CODES = new Set(['COME0301', 'ITEC0201'])
+
+/** COMP0000 형식과 위 과목은 컴퓨터학부 개설 과목 (백엔드 computer_science_offering과 같은 규칙, 편입 전 이수 과목은 제외) */
+export const isDepartmentCode = (code: string | null | undefined) => {
+  const c = (code ?? '').toUpperCase()
+  return CSE_ADDITIONAL_CODES.has(c) || /^COMP\d{4}$/.test(c)
+}
+
 export function offeredByDepartment(item: CatalogCourse | undefined, code?: string): boolean | undefined {
   if (DEPARTMENT_OFFERED_OVERRIDES.has(item?.course_code ?? code ?? '')) return true
+  if (item?.offered_by_computer_science == null && isDepartmentCode(item?.course_code ?? code)) return true
   if (!item) return undefined
   // 백엔드가 개설 학부를 알려주면 그 값을 쓴다
   if (item.offered_by_computer_science != null) return item.offered_by_computer_science

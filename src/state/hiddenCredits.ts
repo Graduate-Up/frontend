@@ -45,14 +45,24 @@ function changeSteps(info: ChangeInfo | undefined, from: string) {
   return [
     {
       title: '교과구분 변경 신청서 작성',
-      sub: code ? `신청학과 코드 ${code} · ${from}` : `${from} · 신청학과 코드 확인 필요`,
+      sub: `${code ? `신청학과 코드 ${code}` : '신청학과 코드 확인 필요'} · ${from}${
+        info?.change.form_name ? ` · 서식: ${info.change.form_name}` : ''
+      }`,
     },
     { title: '학부 사무실 제출', sub: '성적표에 성적이 오른 뒤 졸업 전까지 상시 신청' },
     { title: '성적표 반영 확인', sub: '반영되면 이수 내역에서 교과구분만 바꿔주세요' },
   ]
 }
 
-const formAction = (info?: ChangeInfo) => (info ? { label: '신청서 서식 받기', href: info.change.form_url } : undefined)
+/**
+ * 신청서 서식 — 학부 홈페이지 첨부파일은 공지를 열 때마다 바뀌는 토큰이 있어야 받아져서 직접 링크가 안 된다.
+ * 서식이 첨부된 공지(내 세부전공 공지 먼저)로 보낸다.
+ */
+const formAction = (info?: ChangeInfo) => {
+  if (!info) return undefined
+  const notice = [...(info.change.major_sources[info.major] ?? []), ...info.change.sources].find((s) => s.url)
+  return { label: '공지에서 신청서 서식 받기', href: notice?.url ?? info.change.form_url }
+}
 
 const changeSources = (info: ChangeInfo | undefined, fallback: Source[]) =>
   info ? [...(info.change.major_sources[info.major] ?? []), ...info.change.sources] : fallback

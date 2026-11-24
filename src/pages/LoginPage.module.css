@@ -194,8 +194,22 @@
 }
 
 @media (max-width: 900px) {
+  /* minmax(0, 1fr): 칸이 내용 최소 폭보다 좁아질 수 있어야 폰 화면보다 넓어지지 않는다 */
   .page {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px 16px 32px;
+  }
+
+  .card {
+    min-width: 0;
+  }
+
+  .card {
+    padding: 28px 20px;
   }
 
   .hero {
