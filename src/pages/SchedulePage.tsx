@@ -190,37 +190,6 @@ function buildSteps(
   )
 }
 
-/** 날짜가 있는 절차를 .ics로 내려받는다 */
-function downloadCalendar(steps: Step[]) {
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')
-  const events = steps
-    .filter((s) => s.date)
-    .map((s) => {
-      const d = s.date!.replace(/-/g, '')
-      const next = new Date(parseDate(s.date!).getTime() + DAY)
-      const end = `${next.getFullYear()}${String(next.getMonth() + 1).padStart(2, '0')}${String(next.getDate()).padStart(2, '0')}`
-      return [
-        'BEGIN:VEVENT',
-        `UID:${s.key}-${d}@jolup`,
-        `DTSTAMP:${stamp}`,
-        `DTSTART;VALUE=DATE:${d}`,
-        `DTEND;VALUE=DATE:${end}`,
-        `SUMMARY:[졸UP] ${s.title}`,
-        `DESCRIPTION:${s.body.replace(/[,;]/g, '\\$&')}`,
-        'END:VEVENT',
-      ].join('\r\n')
-    })
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//jolup//schedule//KO', ...events, 'END:VCALENDAR'].join(
-    '\r\n',
-  )
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'jolup-schedule.ics'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 export function SchedulePage() {
   const profile = useProfile()
   const { courses, records, englishScores } = useStudent()
@@ -251,16 +220,6 @@ export function SchedulePage() {
               lead={`오늘은 ${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일이에요. ${
                 dated.length ? `가장 가까운 마감은 ${dated[0].title}예요.` : '날짜가 정해진 마감은 아직 없어요.'
               }${grad ? '' : ' 졸업 예정 학기를 넣으면 일정을 맞춰 드려요.'}`}
-              right={
-                <button
-                  type="button"
-                  className={ui.buttonGhost}
-                  disabled={!dated.length}
-                  onClick={() => downloadCalendar(dated)}
-                >
-                  캘린더에 추가
-                </button>
-              }
             />
             <div className={styles.layout}>
               <section className={ui.card}>
