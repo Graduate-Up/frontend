@@ -284,3 +284,77 @@
     padding-left: 0;
   }
 }
+
+/* 답변에 이미 이수한 과목이 나올 때 */
+.takenNote {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #faf3e3;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #7a5a14;
+}
+
+/* 규칙 엔진 추천 과목 */
+.recs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.recsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 14px;
+}
+
+.recsHead span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.recs ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+.recs li span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.recs li em {
+  margin-left: auto;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.recsLink {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-navy);
+}

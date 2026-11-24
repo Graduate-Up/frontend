@@ -1,4 +1,12 @@
-import type { CareerTag, CatalogCourse, Course, EvaluationResponse, GraduationRule, StudentProfile } from '@/api'
+import type {
+  CareerTag,
+  CatalogCourse,
+  Course,
+  CourseRecommendation,
+  EvaluationResponse,
+  GraduationRule,
+  StudentProfile,
+} from '@/api'
 import { formatCredits } from '@/components/ui/helpers'
 import { STARTUP_CREDITS_ID } from '@/content/substitutions'
 import { isStartupCourse } from './courseCategory'
@@ -270,4 +278,43 @@ function reasonFor(r: Recommendation, career: Career, grade: number) {
       `교육과정 권장 ${y}학년 ${r.course.recommended_semester ?? ''}학기${y < grade ? ' 과목이라 지금 들어도 좋아요' : ''}.`,
     )
   return parts.join(' ').replace(/\s+\./g, '.')
+}
+
+/** 과목 추천 화면에서 고른 진로 (이 브라우저에 기억) */
+export const CAREER_KEY = 'graduate-up.career'
+
+export function loadCareer(): Career {
+  try {
+    const v = localStorage.getItem(CAREER_KEY)
+    if (v && CAREERS.some((c) => c.id === v)) return v as Career
+  } catch {
+    // 저장소를 못 쓰면 기본값
+  }
+  return 'any'
+}
+
+/** 앞으로 들을 정규학기 4개 (지금이 9~2월이면 다음 해 1학기부터, 3~8월이면 그해 2학기부터) */
+export function upcomingSemesters(now = new Date()) {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  let year = m >= 9 ? y + 1 : y
+  let term = m >= 3 && m <= 8 ? 2 : 1
+  const out: string[] = []
+  for (let i = 0; i < 4; i++) {
+    out.push(`${year}-${term}`)
+    if (term === 2) year += 1
+    term = term === 1 ? 2 : 1
+  }
+  return out
+}
+
+/** 졸업학점(total)보다 구체적인 요건 효과를 먼저 보여준다 */
+export const shownGains = (r: CourseRecommendation) => {
+  const specific = r.gains.filter((g) => g.requirement_id !== 'total')
+  return specific.length ? specific : r.gains
+}
+
+/** 예: 전공학점 −3 (백엔드는 줄어드는 양, 프론트 계산은 이름만) */
+export function gainText(g: { name: string; amount: number }) {
+  return g.amount > 0 ? `${g.name} −${formatCredits(g.amount)}` : g.name
 }
