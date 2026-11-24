@@ -13,7 +13,6 @@ import { KIND_LABEL, KIND_ORDER, classifyCategory, isStartupCourse, multiMajorTa
 import { GRADES, SEMESTER_PATTERN, normalizeGrade, normalizeSemester, semesterLabel } from '@/state/courses'
 import {
   courseNameMap,
-  isDepartmentCode,
   transcriptCategoryOptions,
   useCatalog,
   useEvaluation,
@@ -196,11 +195,11 @@ export function CoursesPage() {
                   .sort((a, b) => a.semester.localeCompare(b.semester) || a.course_code.localeCompare(b.course_code))
                   .map((c) => {
                     const name = c.course_name || names.get(c.course_code)
-                    // COMP 과목은 학부 개설로 본다 (편입 전 이수 과목 제외) — 백엔드와 같은 규칙
-                    const unknownOffer =
-                      c.offered_by_computer_science == null &&
-                      !(isDepartmentCode(c.course_code) && c.prior_institution !== true) &&
-                      majorCategories.includes(c.transcript_category)
+                    // 개설 학부는 백엔드 판정 값을 따른다 (교육과정 전공 과목이면 학부 개설 — 백엔드 computer_science_offering)
+                    const offered =
+                      entries.find((e) => sameCourse(e, c))?.offered_by_computer_science ??
+                      c.offered_by_computer_science
+                    const unknownOffer = offered == null && majorCategories.includes(c.transcript_category)
                     return (
                       <tr key={`${c.course_code}@${c.semester}`}>
                         <td style={{ whiteSpace: 'nowrap' }}>{semesterLabel(c.semester)}</td>
