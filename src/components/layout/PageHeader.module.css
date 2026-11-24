@@ -65,6 +65,13 @@ a.crumb:hover {
   }
 }
 
+/* 폰에서는 위쪽 바(☰) 아래에 붙는다 */
+@media (max-width: 860px) {
+  .header {
+    top: var(--mobile-bar-height);
+  }
+}
+
 .sync {
   font-size: 12px;
   font-weight: 600;

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { formatGraduation } from '@/constants/labels'
@@ -12,6 +13,11 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { kind, displayName, profile, signOut, courses } = useStudent()
+  // 좁은 화면(폰)에서는 사이드바를 ☰ 메뉴로 연다. 연 화면 주소를 기억해서, 다른 메뉴로 이동하면 저절로 닫힌다
+  const here = location.pathname + location.hash
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const menuOpen = openAt === here
+  const setMenuOpen = (open: boolean) => setOpenAt(open ? here : null)
 
   if (kind === 'loading') return null
   if (kind === 'anonymous') return <Navigate to="/login" replace />
@@ -21,7 +27,23 @@ export function AppLayout() {
 
   return (
     <div className={styles.shell}>
-      <aside className={styles.sidebar}>
+      <div className={styles.mobileBar}>
+        <Link to="/" aria-label="내 졸업 현황">
+          <Logo onDark size={20} />
+        </Link>
+        <button
+          type="button"
+          className={styles.menuButton}
+          aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </div>
+      {menuOpen && <div className={styles.backdrop} onClick={() => setMenuOpen(false)} aria-hidden />}
+
+      <aside className={styles.sidebar} data-open={menuOpen || undefined}>
         <div className={styles.brand}>
           <Logo onDark size={24} />
           <p className={styles.dept}>경북대학교 컴퓨터학부</p>

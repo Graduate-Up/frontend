@@ -288,6 +288,9 @@ export function LoginPage() {
           >
             예시 학생으로 둘러보기
           </button>
+          <button type="button" className={styles.secondary} onClick={() => navigate('/demo')}>
+            데모 계정으로 체험하기
+          </button>
 
           <p className={styles.note}>성적표 원본은 저장하지 않아요. 최종 졸업사정은 학부 사무실 확인이 필요합니다.</p>
         </div>

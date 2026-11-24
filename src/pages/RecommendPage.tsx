@@ -3,38 +3,23 @@ import { getMyRecommendations, type CareerTag, type CourseRecommendation, type P
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState, Loading, PageIntro, formatCredits, ui } from '@/components/ui'
 import { useCatalog, useEvaluation, useRequirements } from '@/state/queries'
-import { CAREERS, careerMatches, isServerCareer, recommend, type Career, type Recommendation } from '@/state/recommend'
+import {
+  CAREERS,
+  CAREER_KEY,
+  careerMatches,
+  gainText,
+  isServerCareer,
+  loadCareer,
+  recommend,
+  shownGains,
+  upcomingSemesters,
+  type Career,
+  type Recommendation,
+} from '@/state/recommend'
 import { useAsync } from '@/state/useAsync'
 import { useProfile, useStudent } from '@/state/useStudent'
 import { programName } from '@/content/programs'
 import styles from './RecommendPage.module.css'
-
-const CAREER_KEY = 'graduate-up.career'
-
-function loadCareer(): Career {
-  try {
-    const v = localStorage.getItem(CAREER_KEY)
-    if (v && CAREERS.some((c) => c.id === v)) return v as Career
-  } catch {
-    // 저장소를 못 쓰면 기본값
-  }
-  return 'any'
-}
-
-/** 앞으로 들을 정규학기 4개 (지금이 9~2월이면 다음 해 1학기부터, 3~8월이면 그해 2학기부터) */
-function upcomingSemesters(now = new Date()) {
-  const y = now.getFullYear()
-  const m = now.getMonth() + 1
-  let year = m >= 9 ? y + 1 : y
-  let term = m >= 3 && m <= 8 ? 2 : 1
-  const out: string[] = []
-  for (let i = 0; i < 4; i++) {
-    out.push(`${year}-${term}`)
-    if (term === 2) year += 1
-    term = term === 1 ? 2 : 1
-  }
-  return out
-}
 
 const CAREER_LABEL = Object.fromEntries(CAREERS.map((c) => [c.id, c.label])) as Record<Career, string>
 
@@ -337,16 +322,6 @@ export function RecommendPage() {
 }
 
 /** 총 졸업학점은 거의 모든 과목에 붙어서, 다른 요건이 있으면 뺀다 */
-const shownGains = (r: CourseRecommendation) => {
-  const specific = r.gains.filter((g) => g.requirement_id !== 'total')
-  return specific.length ? specific : r.gains
-}
-
-/** 예: 전공학점 −3 (백엔드는 줄어드는 양, 프론트 계산은 이름만) */
-function gainText(g: { name: string; amount: number }) {
-  return g.amount > 0 ? `${g.name} −${formatCredits(g.amount)}` : g.name
-}
-
 function RecommendCard({
   rank,
   rec,

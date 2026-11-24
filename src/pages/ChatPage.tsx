@@ -1,15 +1,51 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError, askGraduationChat, type Source } from '@/api'
+import { ApiError, askGraduationChat, getMyRecommendations, type Course, type Source } from '@/api'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { errorText } from '@/components/ui'
+import { gainText, isServerCareer, loadCareer, shownGains, upcomingSemesters } from '@/state/recommend'
 import { useStudent } from '@/state/useStudent'
 import styles from './ChatPage.module.css'
 
+/** 과목 추천 API 결과 한 줄 (이수한 과목 · 선수과목 미충족 과목은 서버가 이미 뺀 목록) */
+type RecItem = { code: string; name: string; credits: number; gains: string }
+
 type Message =
   | { role: 'user'; text: string }
-  | { role: 'bot'; text: string; sources: Source[] }
-  | { role: 'error'; text: string; needsProfile?: boolean }
+  | { role: 'bot'; text: string; sources: Source[]; recs?: RecItem[] }
+  | { role: 'error'; text: string; needsProfile?: boolean; recs?: RecItem[] }
+
+/** '과목 추천해줘', '다음 학기에 뭐 들을까' 같은 질문 */
+const RECOMMEND_QUESTION = /추천|뭐\s*(를\s*)?들|무슨\s*과목|어떤\s*과목|들을\s*(만한|과목)|수강\s*(할|하면|계획)/
+
+/** 챗봇과 별개로 규칙 엔진 추천을 받아 붙인다 (AI 답변은 내 이수 과목을 다 모르고 답할 수 있어서) */
+async function fetchRecs(): Promise<RecItem[] | undefined> {
+  try {
+    const career = loadCareer()
+    const res = await getMyRecommendations({
+      career: isServerCareer(career) ? career : null,
+      use_ai: false,
+      target_semester: upcomingSemesters()[0],
+    })
+    return [...res.recommended, ...res.alternatives].slice(0, 5).map((r) => ({
+      code: r.course_code,
+      name: r.course_name,
+      credits: r.credits,
+      gains: shownGains(r).map(gainText).join(' · '),
+    }))
+  } catch {
+    return undefined
+  }
+}
+
+/** 과목명이 다른 과목명의 일부(자료구조 ⊂ 자료구조응용)로만 나오면 세지 않는다 */
+const escapeRe = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+function mentionsCourse(text: string, c: Course) {
+  if (text.toUpperCase().includes(c.course_code.toUpperCase())) return true
+  const name = c.course_name?.trim()
+  if (!name || name.length < 2) return false
+  return new RegExp(`(^|[^가-힣A-Za-z0-9])${escapeRe(name)}($|[^가-힣A-Za-z0-9])`).test(text)
+}
 
 const SUGGESTIONS = [
   '전공학점이 얼마나 부족해요?',
@@ -45,7 +81,8 @@ function richText(text: string): ReactNode[] {
 }
 
 export function ChatPage() {
-  const { kind, syncStatus } = useStudent()
+  const { kind, syncStatus, courses } = useStudent()
+  const completed = courses.filter((c) => c.status === 'completed')
   const [messages, setMessages] = useState<Message[]>(readMessages)
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
@@ -67,11 +104,14 @@ export function ChatPage() {
     setInput('')
     setMessages((prev) => [...prev, { role: 'user', text: q }])
     setPending(true)
+    const recsPromise = RECOMMEND_QUESTION.test(q) ? fetchRecs() : Promise.resolve(undefined)
     try {
       const res = await askGraduationChat(q)
-      setMessages((prev) => [...prev, { role: 'bot', text: res.answer, sources: res.sources }])
+      const recs = await recsPromise
+      setMessages((prev) => [...prev, { role: 'bot', text: res.answer, sources: res.sources, recs }])
     } catch (err) {
-      setMessages((prev) => [...prev, errorMessage(err)])
+      const recs = await recsPromise
+      setMessages((prev) => [...prev, { ...errorMessage(err), recs } as Message])
     } finally {
       setPending(false)
     }
@@ -126,6 +166,8 @@ export function ChatPage() {
                 <div className={styles.bot} data-error={m.role === 'error' || undefined}>
                   {m.role === 'bot' && <span className={styles.badge}>내 판정 결과 기준 · AI 답변</span>}
                   <p className={styles.answer}>{richText(m.text)}</p>
+                  {m.role === 'bot' && <TakenNote text={m.text} completed={completed} />}
+                  {m.recs && m.recs.length > 0 && <RecsCard recs={m.recs} />}
                   {m.role === 'error' && m.needsProfile && (
                     <Link to="/onboarding" className={styles.errorLink}>
                       학적 정보 입력하기 →
@@ -208,5 +250,43 @@ export function ChatPage() {
         </div>
       </div>
     </>
+  )
+}
+
+/** 답변에 이미 이수한 과목이 나오면 알려준다 (AI가 내 이수 과목을 다 모르고 답할 수 있어서) */
+function TakenNote({ text, completed }: { text: string; completed: Course[] }) {
+  const taken = completed.filter((c) => mentionsCourse(text, c))
+  if (!taken.length) return null
+  const names = [...new Set(taken.map((c) => c.course_name || c.course_code))]
+  return (
+    <p className={styles.takenNote}>
+      <b>이미 이수한 과목이 답변에 있어요:</b> {names.join(' · ')}. 재수강할 게 아니면 다시 들을 필요 없어요.
+    </p>
+  )
+}
+
+/** 규칙 엔진 추천 — 이수한 과목과 선수과목을 안 들은 과목은 빠진 목록 */
+function RecsCard({ recs }: { recs: RecItem[] }) {
+  return (
+    <div className={styles.recs}>
+      <div className={styles.recsHead}>
+        <b>졸UP 추천 과목</b>
+        <span>이수한 과목 · 선수과목 미충족 과목 제외</span>
+      </div>
+      <ul>
+        {recs.map((r) => (
+          <li key={r.code}>
+            <b>{r.name}</b>
+            <span>
+              {r.code} · {r.credits}학점
+            </span>
+            {r.gains && <em>{r.gains}</em>}
+          </li>
+        ))}
+      </ul>
+      <Link to="/recommend" className={styles.recsLink}>
+        과목 추천에서 진로별로 더 보기 →
+      </Link>
+    </div>
   )
 }
