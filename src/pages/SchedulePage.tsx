@@ -236,6 +236,9 @@ export function SchedulePage() {
                   result={evaluation.data!.requirements.find((r) => r.id === 'practical-english')}
                 />
                 <OptionalCard
+                  transfer={
+                    profile.student_status === 'general_transfer' || profile.student_status === 'bachelor_transfer'
+                  }
                   policy={schedule.data!.early_graduation}
                   assessment={evaluation.data!.early_graduation}
                   deferral={schedule.data!.deferral}
@@ -325,10 +328,13 @@ const EARLY_STATUS: Record<EarlyGraduationAssessment['status'], string> = {
 }
 
 function OptionalCard({
+  transfer,
   policy,
   assessment,
   deferral,
 }: {
+  /** 편입생 — 조기졸업 대상이 아닐 수 있다 (policy.not_for_transfer) */
+  transfer: boolean
   policy: GraduationSchedule['early_graduation']
   /** 백엔드 판정 (평점 · 등록 학기 · 졸업요건 충족 여부) */
   assessment: EarlyGraduationAssessment | null | undefined
@@ -349,6 +355,10 @@ function OptionalCard({
     if (assessment.status !== 'not_applicable' && !assessment.graduation_requirements_met)
       why.push('졸업요건을 아직 다 채우지 못했어요')
     earlyWhy = why.join(' · ')
+  }
+  if (transfer && policy.not_for_transfer) {
+    early = '대상 아님'
+    earlyWhy = '편입생은 조기졸업을 신청할 수 없어요'
   }
   const fees = deferral.tuition_by_credits
     .map(

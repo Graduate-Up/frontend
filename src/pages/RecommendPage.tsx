@@ -30,6 +30,8 @@ type View = {
   alternatives: CourseRecommendation[]
   programs: ProgramRecommendation[]
   programNames: Record<string, string>
+  /** 백엔드에 융합전공 · 복수전공 데이터가 있는지 (없으면 탐색 후보를 못 보여준다) */
+  programDataAvailable: boolean
   ai: boolean
   basis: string
   /** 교육과정 출처 링크 */
@@ -98,6 +100,15 @@ export function RecommendPage() {
   const rule = useRequirements(profile)
   const evaluation = useEvaluation(profile, courses, records)
   const catalog = useCatalog(profile)
+  // 선수과목을 지켜야 하는 학적(플솦 ABEEK 등)이면 그 근거 공지
+  const prereqSources = [
+    ...new Map(
+      (catalog.data?.items ?? [])
+        .filter((c) => c.prerequisite_kind === 'required')
+        .flatMap((c) => c.prerequisite_sources ?? [])
+        .map((s) => [s.title, s]),
+    ).values(),
+  ]
 
   // 로그인: 서버에 저장된 이수 기록으로 백엔드 추천 (저장 중이면 끝난 뒤에)
   // 프론트엔드 · PM은 백엔드 진로 태그가 없어 진로 없이 요청하고, 순서는 과목명 키워드로 다시 정한다
@@ -127,6 +138,7 @@ export function RecommendPage() {
         ? [...d.programs].sort((a, b) => Number(b.id === myProgram) - Number(a.id === myProgram))
         : d.programs,
       programNames: Object.fromEntries(d.programs.map((p) => [p.id, p.name])),
+      programDataAvailable: d.program_data_available !== false,
       ai: d.ranking === 'openai',
       basisUrl: d.curriculum_source.url ?? null,
       basis: d.curriculum_source.title,
@@ -140,6 +152,7 @@ export function RecommendPage() {
       recommended: items.slice(0, 3),
       alternatives: items.slice(3),
       programs: [],
+      programDataAvailable: true,
       programNames: {},
       ai: false,
       basis: catalog.data.basis,
@@ -301,6 +314,28 @@ export function RecommendPage() {
             )}
 
             {(view.programs.length > 0 || myProgram) && <ProgramsCard programs={view.programs} myProgram={myProgram} />}
+            {!view.programDataAvailable && (
+              <p className={ui.muted}>융합전공 · 복수전공 데이터가 아직 준비되지 않아 탐색 후보를 보여줄 수 없어요.</p>
+            )}
+
+            {prereqSources.length > 0 && (
+              <p className={ui.muted}>
+                선수과목을 아직 안 들은 과목은 추천에서 뺐어요. (근거:{' '}
+                {prereqSources.map((s, i) => (
+                  <span key={s.title}>
+                    {i > 0 && ', '}
+                    {s.url ? (
+                      <a href={s.url} target="_blank" rel="noreferrer">
+                        {s.title} ↗
+                      </a>
+                    ) : (
+                      s.title
+                    )}
+                  </span>
+                ))}
+                )
+              </p>
+            )}
 
             <p className={ui.muted}>
               추천은 내 교육과정 과목 중에서만 해요. 각 과목의 효과는 그 과목 하나만 들었을 때 기준이라 여러 과목을

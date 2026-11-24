@@ -16,7 +16,7 @@ import {
   ui,
 } from '@/components/ui'
 import { reasonText } from '@/constants/labels'
-import { useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
+import { courseNameMap, substitutesMap, useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   GROUP_LABEL,
   GROUP_ORDER,
@@ -97,6 +97,8 @@ function MyRequirements({
   const programLabel = useMyProgramName()
   const [filter, setFilter] = useState<Filter>('all')
   const views = buildRequirementViews(rule, result, profile)
+  const substitutes = substitutesMap(rule)
+  const names = courseNameMap(rule)
   const count = (f: Filter) => views.filter((v) => matches(f, v)).length
   const visible = views.filter((v) => matches(filter, v))
   const groups = GROUP_ORDER.map((g) => ({ group: g, items: visible.filter((v) => v.group === g) })).filter(
@@ -153,7 +155,7 @@ function MyRequirements({
           </div>
           <div className={styles.items}>
             {items.map((v) => (
-              <RequirementItem key={v.id} view={v} />
+              <RequirementItem key={v.id} view={v} substitutes={substitutes} names={names} />
             ))}
           </div>
         </section>
@@ -176,7 +178,16 @@ function MyRequirements({
   )
 }
 
-function RequirementItem({ view }: { view: RequirementView }) {
+function RequirementItem({
+  view,
+  substitutes,
+  names,
+}: {
+  view: RequirementView
+  /** 필수과목 → 대신 인정되는 과목코드 */
+  substitutes: Map<string, string[]>
+  names: Map<string, string>
+}) {
   const { checkMethods } = useStudent()
   // 대체를 고른 상태면 충족돼도 취소할 수 있게 버튼을 남긴다
   const substitutionChosen = chosenSubstitutions(checkMethods).has(view.id)
@@ -233,6 +244,15 @@ function RequirementItem({ view }: { view: RequirementView }) {
               <RequiredCourseBadge status={c.status} notNeeded={isNotNeeded(r.status, c.status)} />
               <span className={styles.courseName}>{c.course_name}</span>
               <span className={ui.muted}>{c.course_code}</span>
+              {!!substitutes.get(c.course_code)?.length && (
+                <small className={ui.muted}>
+                  대체 인정:{' '}
+                  {substitutes
+                    .get(c.course_code)!
+                    .map((s) => names.get(s) ?? s)
+                    .join(' · ')}
+                </small>
+              )}
               {isNotNeeded(r.status, c.status) && <small className={styles.notNeeded}>채울 필요 없어요.</small>}
             </li>
           ))}

@@ -24,7 +24,7 @@ import {
   ui,
 } from '@/components/ui'
 import { CREDIT_AREA_LABEL, reasonText } from '@/constants/labels'
-import { courseNameMap, useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
+import { courseNameMap, substitutesMap, useEvaluation, useMyProgramName, useRequirements } from '@/state/queries'
 import {
   buildRequirementViews,
   entriesForArea,
@@ -110,6 +110,7 @@ function Detail({
   const r = view.result
   const area = r.credit_area
   const names = courseNameMap(rule)
+  const substitutes = substitutesMap(rule)
   const [showAllPending, setShowAllPending] = useState(false)
   const split = area ? entriesForArea(area, entries, rule?.major_transcript_categories ?? []) : null
   const pendingCredits = split?.pending.reduce((n, e) => n + (e.recognized_credits || 0), 0) ?? 0
@@ -245,7 +246,18 @@ function Detail({
                       data-status={isNotNeeded(r.status, c.status) ? 'not_needed' : c.status}
                     >
                       <td className={ui.code}>{c.course_code}</td>
-                      <td className={styles.requiredName}>{c.course_name}</td>
+                      <td className={styles.requiredName}>
+                        {c.course_name}
+                        {!!substitutes.get(c.course_code)?.length && (
+                          <small className={styles.substitute}>
+                            대체 인정:{' '}
+                            {substitutes
+                              .get(c.course_code)!
+                              .map((s) => names.get(s) ?? s)
+                              .join(' · ')}
+                          </small>
+                        )}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         <RequiredCourseBadge status={c.status} notNeeded={isNotNeeded(r.status, c.status)} />
                         {isNotNeeded(r.status, c.status) && (

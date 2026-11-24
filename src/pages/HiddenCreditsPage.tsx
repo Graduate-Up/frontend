@@ -124,7 +124,7 @@ function FoundCard({ check }: { check: HiddenCheck }) {
         <Sources sources={check.sources} />
         {check.action?.href && (
           <a href={check.action.href} className={ui.button} target="_blank" rel="noreferrer">
-            {check.action.label} ↓
+            {check.action.label} ↗
           </a>
         )}
         {check.action?.to && (

@@ -352,3 +352,12 @@ a.option:hover {
 .state[data-missing] {
   color: var(--color-danger);
 }
+
+/* 필수과목 대신 인정되는 과목 */
+.substitute {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
